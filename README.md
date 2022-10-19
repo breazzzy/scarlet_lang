@@ -1,2 +1,2 @@
 # scarlet_lang
-Tiny programming language I built for fun!
+Tiny programming language built for fun and to learn!
