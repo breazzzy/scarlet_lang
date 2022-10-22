@@ -51,7 +51,7 @@ impl Scanner {
         }
         self.tokens.push(Token{token_type: TokenType::TERMINATE, literal: None, lex: "".to_string(), line: self.line });
         // self.tokens.iter().map(|t| println!("{}", t));
-        println!("{:?}", self.tokens);
+        // println!("{:?}", self.tokens);
     }
 
     pub fn scan_token(&mut self){

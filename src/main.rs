@@ -4,6 +4,9 @@ mod scanner;
 mod token;
 mod parser;
 mod interpreter;
+mod statement;
+mod expression;
+mod scope;
 
 use interpreter::Interpreter;
 use parser::Parser;
@@ -14,8 +17,7 @@ static mut HAD_ERROR: bool = false;
 
 
 fn main() {
-    println!("Hello, world!");
-    read_file("test.placehold");
+    read_file("test.scarlet");
 }
 
 fn read_file(path: &str) {
@@ -32,11 +34,12 @@ fn error(line: i32, msg: String) {
 
 fn run(src: String) {
     let mut scanner = Scanner::new(&src);
-    let mut interpreter : Interpreter = Interpreter {  };
+    let mut interpreter : Interpreter = Interpreter::new();
     scanner.scan_tokens();
+    // scanner.tokens.into_iter().map(|x| print!("{}", x));
     let mut parser : Parser = Parser::new(scanner.tokens);
-    let val = interpreter.interp(parser.parse()).expect("Pls");
-    println!("{:?}", val);
+    interpreter.interp(parser.parse().expect("Parsing failure"));
+    // println!("{:?}", val);
     // let mut tokens: Vec<Token> = scanner.scanTokens();
     
 }
