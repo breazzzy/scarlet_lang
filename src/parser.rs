@@ -20,6 +20,31 @@ impl Parser{
         return Ok(stmts);
     }
 
+    
+    fn statement(&mut self) -> Result<Statement, String>{
+        if(self.matcher(TokenType::Print)){
+            return self.print_statement();
+        }
+        if(self.matcher(TokenType::LeftSquigly)){
+            return self.block();
+        }
+
+        return self.expression_statement();
+    }
+
+    pub fn block(&mut self) -> Result<Statement,String> {
+        let mut stmts : Vec<Statement> = vec![];
+
+        while !self.check(TokenType::RightSquigly) && !self.end_of_file() {
+            match self.declaration() {
+                Ok(stmt) => stmts.push(stmt),
+                Err(err) => return Err(err),
+            }
+        }
+        self.consume(TokenType::RightSquigly, "Error ending block, } missing");
+        return Ok(Statement::Block(stmts));
+    }
+
     // fn synchronize(&mut self){
     //     self.advance();
     //     while !self.end_of_file() {
@@ -37,24 +62,24 @@ impl Parser{
 
     fn declaration(&mut self) -> Result<Statement, String>{
         if self.matcher(TokenType::Let) {return self.declare_var();}
-        return self.statement();
+        return self.assignment();
+        // return self.statement();
     }
 
-    fn statement(&mut self) -> Result<Statement, String>{
-        if(self.matcher(TokenType::Print)){
-            return self.print_statement();
+    fn assignment(&mut self) -> Result<Statement, String>{
+        if self.peek().token_type == TokenType::Identifier {
+            return self.assign_var();
         }
-
-        return self.expression_statement();
+        return self.statement();
     }
 
     fn expression(&mut self) -> Expression{
         return self.comparison();
     }
-
+    // x == y
     fn equality(&mut self) -> Expression{
         let mut expr : Expression = self.comparison();
-        while self.matcher(TokenType::NotEqual) || self.matcher(TokenType::Equality) {
+        while self.matcher(TokenType::NotEqual) || self.matcher(TokenType::Equality) /*|| self.matcher(TokenType::Assignment)*/ {
             let operator : Token = self.previous();
             let right : Expression = self.comparison();
             expr = Expression::Binary(Box::new(expr), operator, Box::new(right))
@@ -102,6 +127,11 @@ impl Parser{
 
     fn peek(&self) -> Token {
         return self.tokens.get(self.current).unwrap().clone();
+    }
+
+    //Check to see at end of file
+    fn peek_next(&self) -> Token {
+        return self.tokens.get(self.current + 1).unwrap().clone();
     }
 
     fn term(&mut self) -> Expression {
@@ -153,14 +183,14 @@ impl Parser{
         //     return 
         // }
         else{
-            panic!("Wtf is {:?}", self.peek().token_type);
+            panic!("@Line {}:Unexpected token {:?}",self.tokens[self.current].line, self.peek().token_type);
         }
     }
 
     fn consume(&mut self, t: TokenType, msg: &str) -> Token {
         if(self.check(t)) {return self.advance();}
 
-        panic!("{}", msg);
+        panic!("@Line {}:{}",self.tokens[self.current].line, msg);
     }
 
     // Statment for print
@@ -188,6 +218,14 @@ impl Parser{
         self.consume(TokenType::Semicolon, "Expect ; after variable declaration");
 
         return Ok(Statement::Declaration(Symbol{name: name.lex}, init));
+    }
+
+    fn assign_var(&mut self) -> Result<Statement, String> {
+        let name : Token = self.consume(TokenType::Identifier, "Error on parsing assignment");
+        self.consume(TokenType::Assignment, "Assignment not valid");
+        let expr = self.expression();
+        self.consume(TokenType::Semicolon, "Expect ; after variable assignment");
+        return Ok(Statement::Assignment(Symbol{name:name.lex}, expr));
     }
 
 }

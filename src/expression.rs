@@ -5,6 +5,7 @@ pub enum Expression{
     Unary(Token, Box<Expression>),
     Literal(Literal),
     Grouping(Box<Expression>),
+    // Assignment(Symbol, Box<Expression>),
     Variable(Symbol),
 }
 

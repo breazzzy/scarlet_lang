@@ -59,6 +59,8 @@ impl Scanner {
         match c {
             '(' => self.add_token(TokenType::LeftParen),
             ')' => self.add_token(TokenType::RightParen),
+            '{' => self.add_token(TokenType::LeftSquigly),
+            '}' => self.add_token(TokenType::RightSquigly),
             '+' => self.add_token(TokenType::Plus),
             '-' => self.add_token(TokenType::Minus),
             '*' => self.add_token(TokenType::Aster),
@@ -93,6 +95,8 @@ impl Scanner {
                 if self.peek() == 'n' && self.peek_next() == 'd'{
                     self.add_token(TokenType::And);
                     self.advance(); self.advance();
+                }else{
+                    self.identifier();
                 }
             }
             '"' => self.string(),

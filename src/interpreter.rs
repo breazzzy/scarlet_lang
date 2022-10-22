@@ -1,5 +1,5 @@
 use core::panic;
-use std::fmt::{Debug, Display};
+use std::{fmt::{Debug, Display}, rc::Rc, cell::RefCell};
 
 use crate::{token::{Literal, Token, TokenType}, expression::{Expression, Symbol}, statement::Statement, scope::Scope};
 
@@ -12,7 +12,7 @@ pub struct Interpreter{
 impl Interpreter{
 
     pub fn interp(&mut self, stmts : Vec<Statement>){
-        self.program_scope = Scope::new();
+        self.program_scope = Scope::new(None);
         for s in stmts{
             self.interpret_statement(s);
         }
@@ -20,9 +20,31 @@ impl Interpreter{
 
     pub fn interpret_statement(&mut self, stmt : Statement){
         match stmt {
-            Statement::Print(e) => println!("{}", self.interpret_expression(e).expect("Expected expression. [Error on print statment]")),
-            Statement::Declaration(n, e) => self.interpret_declaration(n,e),
-            Statement::Expression(e) => println!("Ghost expression"),
+            Statement::Print(expr) => println!("{}", self.interpret_expression(expr).expect("Expected expression. [Error on print statment]")),
+            Statement::Declaration(sym, expr) => self.interpret_declaration(sym,expr),
+            Statement::Expression(expr) => println!("Ghost expression"),
+            Statement::Assignment(sym, expr) => self.interpret_assignment(sym,expr),
+            Statement::StartScope => todo!(),
+            Statement::EndScope => todo!(),
+            Statement::Block(stmts) => self.interpret_block(stmts),
+        }
+    }
+
+    pub fn interpret_block(&mut self, stmts : Vec<Statement>){
+        //Create new scope
+        self.program_scope = Scope::new(Some(Box::new(self.program_scope.clone())));
+        // self.program_scope = block_scope;
+        // block_scope.enclosing = 
+        for stmt in stmts{
+            self.interpret_statement(stmt);
+        }
+        //End block and revert to previous scope
+        if let Some(scope) = &self.program_scope.enclosing{
+            self.program_scope = *scope.clone();
+        }else{
+            //Something has gone horribly wrong
+            panic!("Scope no longer exists")
+            //This should be impossible
         }
     }
 
@@ -33,6 +55,8 @@ impl Interpreter{
             Expression::Literal(a) => Ok(self.interpret_literal(a)),
             Expression::Grouping(ex) => self.interpret_expression(*ex),
             Expression::Variable(v) => self.interpret_variable(v),
+            // Expression::Assignment(sym, expr) => Ok(self.interpret_assignment(sym, expr)),
+            _ => panic!("Error on interpreting expression. Unkown expression")
         }
     }
 
@@ -70,7 +94,7 @@ impl Interpreter{
         (_,_,_)=> todo!(),
     }}
 
-    fn interpret_declaration(&mut self, variable : Symbol, expr : Option<Expression>) {
+    fn interpret_declaration(&mut self, variable : Symbol, expr : Option<Expression>){
         match expr {
             Some(expr) => {
                 match self.interpret_expression(expr) {
@@ -95,7 +119,14 @@ impl Interpreter{
     }
 
     pub fn new() -> Interpreter {
-        Interpreter { program_scope: Scope::new() }
+        Interpreter { program_scope: Scope::new(None) }
+    }
+
+    // Remove the return result to go back to normal assignment
+    // Assignment is currently an expression meaning something like print x = 2; will print 2 and all assign variable x to 2;
+    // When assignment is a statment it would throw an error for print x = 2; and assignment would always look like y = 3;
+    fn interpret_assignment(&mut self, sym: Symbol, expr: Expression)/* -> Result<Value, String> */ {
+        self.program_scope.assign_var(&sym,self.interpret_expression(expr).expect("Error interpreting expression on assignment"));
     }
 
     // pub fn interpret_grouping(&self, expr : Expr::Grouping){

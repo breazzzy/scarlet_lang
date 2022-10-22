@@ -43,8 +43,10 @@ pub enum TokenType {
     This,
     Let,
     While,
+    LeftSquigly, // {}
+    RightSquigly, // }
     //
-    TERMINATE
+    TERMINATE,
 }
 
 #[derive(Debug,Clone)]
