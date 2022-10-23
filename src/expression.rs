@@ -1,6 +1,8 @@
-use crate::token::{Token, Literal};
+use std::fmt::Debug;
 
-pub enum Expression{
+use crate::token::{Literal, Token};
+
+pub enum Expression {
     Binary(Box<Expression>, Token, Box<Expression>),
     Unary(Token, Box<Expression>),
     Literal(Literal),
@@ -9,6 +11,29 @@ pub enum Expression{
     Variable(Symbol),
 }
 
-pub struct Symbol{
+impl Debug for Expression {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Binary(arg0, arg1, arg2) => f
+                .debug_tuple("Binary")
+                .field(arg0)
+                .field(arg1)
+                .field(arg2)
+                .finish(),
+            Self::Unary(arg0, arg1) => f.debug_tuple("Unary").field(arg0).field(arg1).finish(),
+            Self::Literal(arg0) => f.debug_tuple("Literal").field(arg0).finish(),
+            Self::Grouping(arg0) => f.debug_tuple("Grouping").field(arg0).finish(),
+            Self::Variable(arg0) => f.debug_tuple("Variable").field(arg0).finish(),
+        }
+    }
+}
+
+pub struct Symbol {
     pub name: String,
+}
+
+impl Debug for Symbol {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Symbol").field("name", &self.name).finish()
+    }
 }

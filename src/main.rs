@@ -1,12 +1,12 @@
 use std::{fs, process};
 
-mod scanner;
-mod token;
-mod parser;
-mod interpreter;
-mod statement;
 mod expression;
+mod interpreter;
+mod parser;
+mod scanner;
 mod scope;
+mod statement;
+mod token;
 
 use interpreter::Interpreter;
 use parser::Parser;
@@ -14,7 +14,6 @@ use scanner::Scanner;
 use token::Token;
 
 static mut HAD_ERROR: bool = false;
-
 
 fn main() {
     read_file("test.scarlet");
@@ -34,12 +33,11 @@ fn error(line: i32, msg: String) {
 
 fn run(src: String) {
     let mut scanner = Scanner::new(&src);
-    let mut interpreter : Interpreter = Interpreter::new();
+    let mut interpreter: Interpreter = Interpreter::new();
     scanner.scan_tokens();
     // scanner.tokens.into_iter().map(|x| print!("{}", x));
-    let mut parser : Parser = Parser::new(scanner.tokens);
+    let mut parser: Parser = Parser::new(scanner.tokens);
     interpreter.interp(parser.parse().expect("Parsing failure"));
     // println!("{:?}", val);
     // let mut tokens: Vec<Token> = scanner.scanTokens();
-    
 }

@@ -1,13 +1,15 @@
 let hello = "Hello World";
-print hello;
-{
-    print hello;
-    let a = 2;
-    {
-        print a;
-        print hello;
-        let b = 4;
-        print a + b;
-    }
-#    print b;
-}
+print hello + "a";
+let hello2 = hello + "abc";
+let hello3 = hello + hello2;
+print hello2;
+
+let x = 2;
+let y = x + 4;
+print y;
+
+print "Scarlet" + " Says " + " Hi";
+
+print true;
+
+print true == false;
