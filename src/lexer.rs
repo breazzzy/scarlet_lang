@@ -5,7 +5,7 @@ use crate::{
     Token,
 };
 
-pub struct Scanner {
+pub struct Lexer {
     source: String,
     pub tokens: Vec<Token>,
     start: usize,
@@ -14,8 +14,8 @@ pub struct Scanner {
     keywords: HashMap<String, TokenType>,
 }
 
-impl Scanner {
-    pub fn new(src: &String) -> Scanner {
+impl Lexer {
+    pub fn new(src: &String) -> Lexer {
         let mut words = HashMap::new();
         words.insert("and".to_string(), TokenType::And);
         words.insert("class".to_string(), TokenType::Class);
@@ -33,7 +33,7 @@ impl Scanner {
         words.insert("true".to_string(), TokenType::True);
         words.insert("let".to_string(), TokenType::Let);
         words.insert("while".to_string(), TokenType::While);
-        Scanner {
+        Lexer {
             source: src.to_string(),
             tokens: vec![],
             start: 0,
@@ -59,7 +59,7 @@ impl Scanner {
             line: self.line,
         });
         // self.tokens.iter().map(|t| println!("{}", t));
-        // println!("{:?}", self.tokens);
+        println!("{:?}", self.tokens);
     }
 
     pub fn scan_token(&mut self) {
@@ -76,6 +76,8 @@ impl Scanner {
             '.' => self.add_token(TokenType::Dot),
             ';' => self.add_token(TokenType::Semicolon),
             '/' => self.add_token(TokenType::Slash),
+            '?' => self.add_token(TokenType::Ternary),
+            ':' => self.add_token(TokenType::Colon),
             '!' => {
                 if self.matcher('=') {
                     self.add_token(TokenType::NotEqual)

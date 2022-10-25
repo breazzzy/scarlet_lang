@@ -3,14 +3,14 @@ use std::{fs, process};
 mod expression;
 mod interpreter;
 mod parser;
-mod scanner;
+mod lexer;
 mod scope;
 mod statement;
 mod token;
 
 use interpreter::Interpreter;
 use parser::Parser;
-use scanner::Scanner;
+use lexer::Lexer;
 use token::Token;
 
 static mut HAD_ERROR: bool = false;
@@ -32,7 +32,7 @@ fn error(line: i32, msg: String) {
 }
 
 fn run(src: String) {
-    let mut scanner = Scanner::new(&src);
+    let mut scanner = Lexer::new(&src);
     let mut interpreter: Interpreter = Interpreter::new();
     scanner.scan_tokens();
     // scanner.tokens.into_iter().map(|x| print!("{}", x));

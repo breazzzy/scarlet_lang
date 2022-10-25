@@ -1,8 +1,6 @@
 use core::panic;
 use std::{
-    cell::RefCell,
-    fmt::{Debug, Display, Error},
-    rc::Rc,
+    fmt::{Debug, Display},
 };
 
 use crate::{
@@ -32,10 +30,8 @@ impl Interpreter {
                     .expect("Expected expression. [Error on print statment]")
             ),
             Statement::Declaration(sym, expr) => self.interpret_declaration(sym, expr),
-            Statement::Expression(expr) => println!("Ghost expression"),
+            Statement::Expression(expr) => println!("Interpreter: Ghost expression {:?}", expr),
             Statement::Assignment(sym, expr) => self.interpret_assignment(sym, expr),
-            Statement::StartScope => todo!(),
-            Statement::EndScope => todo!(),
             Statement::Block(stmts) => self.interpret_block(stmts),
         }
     }
@@ -65,8 +61,9 @@ impl Interpreter {
             Expression::Literal(a) => self.interpret_literal(a),
             Expression::Grouping(ex) => self.interpret_expression(*ex),
             Expression::Variable(v) => self.interpret_variable(v),
+            Expression::Ternary(i, r0, r1) => self.interp_ternary(i,r0,r1),
             // Expression::Assignment(sym, expr) => Ok(self.interpret_assignment(sym, expr)),
-            _ => panic!("Error on interpreting expression. Unkown expression"),
+            // _ => panic!("Error on interpreting expression. Unkown expression"),
         }
     }
 
@@ -105,15 +102,29 @@ impl Interpreter {
             .expect("Error on binary interpret of Right value");
 
         match (left, operation.token_type, right) {
+            //Numbers
             (Value::Number(l), TokenType::Plus, Value::Number(r)) => Ok(Value::Number(l + r)),
             (Value::Number(l), TokenType::Minus, Value::Number(r)) => Ok(Value::Number(l - r)),
             (Value::Number(l), TokenType::Aster, Value::Number(r)) => Ok(Value::Number(l * r)),
-            (Value::Number(l), TokenType::Slash, Value::Number(r)) => Ok(Value::Number(l / r)),
+            (Value::Number(l), TokenType::Slash, Value::Number(r)) => {
+                match r{
+                    0.0 => panic!("Divide by zero!"),
+                    _ => Ok(Value::Number(l / r))
+                }
+            },
             //Strings
             (Value::String(l), TokenType::Plus, Value::String(r)) => Ok(Value::String(l + &r)),
+            (Value::String(l), TokenType::Plus, Value::Number(r)) => Ok(Value::String(l + &r.to_string())),
             //Logic
             (Value::Bool(l),TokenType::Equality, Value::Bool(r)) => Ok(Value::Bool(l == r)),
             (Value::Bool(l),TokenType::NotEqual, Value::Bool(r)) => Ok(Value::Bool(l != r)),
+            //Equality
+            (Value::Number(l), TokenType::Equality, Value::Number(r)) => Ok(Value::Bool(l == r)),
+            (Value::Number(l), TokenType::NotEqual, Value::Number(r)) => Ok(Value::Bool(l != r)),
+            (Value::Number(l), TokenType::LessEqual, Value::Number(r)) => Ok(Value::Bool(l <= r)),
+            (Value::Number(l), TokenType::GreaterEqual, Value::Number(r)) => Ok(Value::Bool(l >= r)),
+            (Value::Number(l), TokenType::Less, Value::Number(r)) => Ok(Value::Bool(l < r)),
+            (Value::Number(l), TokenType::Greater, Value::Number(r)) => Ok(Value::Bool(l > r)),
 
             (_, _, _) => self.interpreter_error(operation, "Binary operation error."),
         }
@@ -161,6 +172,24 @@ impl Interpreter {
 
     fn interpreter_error(&self, tok: Token, msg: &str) -> Result<Value, String> {
         Err(format!("Intepreter Error @ {}: {}", tok.line, msg))
+    }
+
+    fn interp_ternary(&self, i: Box<Expression>, r0: Box<Expression>, r1: Box<Expression>) -> Result<Value, String> {
+        let interp_i = self.interpret_expression(*i);
+        match interp_i{
+            Ok(v) => {
+                match  v {
+                    Value::Bool(b) => {
+                        match b {
+                            true => return self.interpret_expression(*r0),
+                            false => return self.interpret_expression(*r1),
+                        }
+                    },
+                    _ => Err("First expression of Ternary expression must be boolean expression".to_string()) 
+                }
+            },
+            Err(e) => Err(e),
+        }
     }
 
     // pub fn interpret_grouping(&self, expr : Expr::Grouping){

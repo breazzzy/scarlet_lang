@@ -1,9 +1,10 @@
 use std::{
-    fmt::{self, Formatter},
-    ops::Deref,
+    fmt::{self},
 };
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum TokenType {
+    Ternary, //?
+    Colon,
     LeftParen,
     RightParen,
     Comma,

@@ -1,8 +1,5 @@
 use std::{
-    borrow::BorrowMut,
-    cell::RefCell,
     collections::HashMap,
-    rc::{Rc, Weak},
 };
 
 use crate::{expression::Symbol, interpreter::Value};

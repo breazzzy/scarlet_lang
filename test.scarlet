@@ -1,15 +1,5 @@
-let hello = "Hello World";
-print hello + "a";
-let hello2 = hello + "abc";
-let hello3 = hello + hello2;
-print hello2;
 
-let x = 2;
-let y = x + 4;
-print y;
+let y = 3;
+let x = (false ? false : true) ? "4 is equal to y" : "y is not equal to 4";
 
-print "Scarlet" + " Says " + " Hi";
-
-print true;
-
-print true == false;
+print x;
