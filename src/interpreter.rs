@@ -18,31 +18,32 @@ impl Interpreter {
     pub fn interp(&mut self, stmts: Vec<Statement>) {
         self.program_scope = Scope::new(None);
         for s in stmts {
-            self.interpret_statement(s);
+            self.interp_statement(s);
         }
     }
 
-    pub fn interpret_statement(&mut self, stmt: Statement) {
+    pub fn interp_statement(&mut self, stmt: Statement) /*-> Result<(), String>*/{
         match stmt {
             Statement::Print(expr) => println!(
                 "{}",
-                self.interpret_expression(expr)
+                self.interp_expression(expr)
                     .expect("Expected expression. [Error on print statment]")
             ),
-            Statement::Declaration(sym, expr) => self.interpret_declaration(sym, expr),
+            Statement::Declaration(sym, expr) => self.interp_declaration(sym, expr),
             Statement::Expression(expr) => println!("Interpreter: Ghost expression {:?}", expr),
-            Statement::Assignment(sym, expr) => self.interpret_assignment(sym, expr),
-            Statement::Block(stmts) => self.interpret_block(stmts),
+            Statement::Assignment(sym, expr) => self.interp_assignment(sym, expr),
+            Statement::Block(stmts) => self.interp_block(stmts),
+            Statement::If(c, t, e) => self.interp_if(c,*t,e),
         }
     }
 
-    pub fn interpret_block(&mut self, stmts: Vec<Statement>) {
+    pub fn interp_block(&mut self, stmts: Vec<Statement>) {
         //Create new scope
         self.program_scope = Scope::new(Some(Box::new(self.program_scope.clone())));
         // self.program_scope = block_scope;
         // block_scope.enclosing =
         for stmt in stmts {
-            self.interpret_statement(stmt);
+            self.interp_statement(stmt);
         }
         //End block and revert to previous scope
         if let Some(scope) = &self.program_scope.enclosing {
@@ -54,20 +55,21 @@ impl Interpreter {
         }
     }
 
-    pub fn interpret_expression(&self, expr: Expression) -> Result<Value, String> {
+    pub fn interp_expression(&self, expr: Expression) -> Result<Value, String> {
         match expr {
-            Expression::Binary(l, operation, r) => self.interpret_binary(l, operation, r),
-            Expression::Unary(operation, ex) => Ok(self.interpret_unary(operation, ex)),
-            Expression::Literal(a) => self.interpret_literal(a),
-            Expression::Grouping(ex) => self.interpret_expression(*ex),
-            Expression::Variable(v) => self.interpret_variable(v),
+            Expression::Binary(l, operation, r) => self.interp_binary(l, operation, r),
+            Expression::Unary(operation, ex) => Ok(self.interp_unary(operation, ex)),
+            Expression::Literal(a) => self.interp_literal(a),
+            Expression::Grouping(ex) => self.interp_expression(*ex),
+            Expression::Variable(v) => self.interp_variable(v),
             Expression::Ternary(i, r0, r1) => self.interp_ternary(i,r0,r1),
+            Expression::Logical(r, o, l) => self.interp_logical(*r,o,*l),
             // Expression::Assignment(sym, expr) => Ok(self.interpret_assignment(sym, expr)),
             // _ => panic!("Error on interpreting expression. Unkown expression"),
         }
     }
 
-    pub fn interpret_literal(&self, expr: Literal) -> Result<Value, String> {
+    pub fn interp_literal(&self, expr: Literal) -> Result<Value, String> {
         match expr {
             Literal::Str(s) => return Ok(Value::String(s)),
             Literal::Number(n) => return Ok(Value::Number(n)),
@@ -77,9 +79,9 @@ impl Interpreter {
         }
     }
 
-    fn interpret_unary(&self, operation: Token, ex: Box<Expression>) -> Value {
+    fn interp_unary(&self, operation: Token, ex: Box<Expression>) -> Value {
         let value = self
-            .interpret_expression(*ex)
+            .interp_expression(*ex)
             .expect("Unexpected Value on unary parsing");
         match (operation.token_type, value) {
             (TokenType::Minus, Value::Number(n)) => return Value::Number(-n),
@@ -88,17 +90,17 @@ impl Interpreter {
         }
     }
 
-    fn interpret_binary(
+    fn interp_binary(
         &self,
         l: Box<Expression>,
         operation: Token,
         r: Box<Expression>,
     ) -> Result<Value, String> {
         let left = self
-            .interpret_expression(*l)
+            .interp_expression(*l)
             .expect("Error on binary interpret of left value");
         let right = self
-            .interpret_expression(*r)
+            .interp_expression(*r)
             .expect("Error on binary interpret of Right value");
 
         match (left, operation.token_type, right) {
@@ -108,7 +110,7 @@ impl Interpreter {
             (Value::Number(l), TokenType::Aster, Value::Number(r)) => Ok(Value::Number(l * r)),
             (Value::Number(l), TokenType::Slash, Value::Number(r)) => {
                 match r{
-                    0.0 => panic!("Divide by zero!"),
+                    r if r == 0.0 => panic!("Divide by zero!"),
                     _ => Ok(Value::Number(l / r))
                 }
             },
@@ -130,11 +132,11 @@ impl Interpreter {
         }
     }
 
-    fn interpret_declaration(&mut self, variable: Symbol, expr: Option<Expression>) {
+    fn interp_declaration(&mut self, variable: Symbol, expr: Option<Expression>){
         match expr {
-            Some(expr) => match self.interpret_expression(expr) {
+            Some(expr) => match self.interp_expression(expr) {
                 Ok(v) => self.program_scope.define_var(variable, v),
-                Err(_) => panic!("Error on evaluation expression of definition"),
+                Err(e) => panic!("{}",e),
             },
             // println!("{} as {}", variable.name, self.interpret_expression(expr).expect("Error interpreting expression after declaration")),
             None => self.program_scope.define_var(variable, Value::Nil),
@@ -145,7 +147,7 @@ impl Interpreter {
         // }
     }
 
-    fn interpret_variable(&self, v: Symbol) -> Result<Value, String> {
+    fn interp_variable(&self, v: Symbol) -> Result<Value, String> {
         match self.program_scope.get_var(v) {
             Ok(v) => Ok(v.clone()),
             Err(err) => Err(err),
@@ -161,11 +163,11 @@ impl Interpreter {
     // Remove the return result to go back to normal assignment
     // Assignment is currently an expression meaning something like print x = 2; will print 2 and all assign variable x to 2;
     // When assignment is a statment it would throw an error for print x = 2; and assignment would always look like y = 3;
-    fn interpret_assignment(&mut self, sym: Symbol, expr: Expression) /* -> Result<Value, String> */
+    fn interp_assignment(&mut self, sym: Symbol, expr: Expression) /* -> Result<Value, String> */
     {
         self.program_scope.assign_var(
             &sym,
-            self.interpret_expression(expr)
+            self.interp_expression(expr)
                 .expect("Error interpreting expression on assignment"),
         );
     }
@@ -175,20 +177,70 @@ impl Interpreter {
     }
 
     fn interp_ternary(&self, i: Box<Expression>, r0: Box<Expression>, r1: Box<Expression>) -> Result<Value, String> {
-        let interp_i = self.interpret_expression(*i);
+        let interp_i = self.interp_expression(*i);
         match interp_i{
             Ok(v) => {
                 match  v {
                     Value::Bool(b) => {
                         match b {
-                            true => return self.interpret_expression(*r0),
-                            false => return self.interpret_expression(*r1),
+                            true => return self.interp_expression(*r0),
+                            false => return self.interp_expression(*r1),
                         }
                     },
                     _ => Err("First expression of Ternary expression must be boolean expression".to_string()) 
                 }
             },
             Err(e) => Err(e),
+        }
+    }
+
+    fn interp_if(&mut self, p: Expression, t: Statement, e: Box<Option<Statement>>) {
+        match self.interp_expression(p).expect("Error interpreting if statement"){
+            Value::Bool(b) => {
+                match b {
+                    true => self.interp_statement(t),
+                    false => {
+                        match *e {
+                            Some(stmt) => self.interp_statement(stmt),
+                            None => return,
+                        }
+                    },
+                }
+            },
+            _ => panic!("Condition of if statement does not amount to boolean"),//Error expression does not amount to true false value
+        }
+    }
+
+    fn interp_logical(&self, left_expr: Expression, o: Token, right_expr: Expression) -> Result<Value, String> {
+        match o.token_type {
+            TokenType::And => {
+                match self.interp_expression(left_expr).expect("Error in logical statement"){
+                    Value::Bool(v) => match v {
+                        true => {
+                            match self.interp_expression(right_expr).expect("Error in logical statement"){
+                                Value::Bool(v) => match v{
+                                    true => return Ok(Value::Bool(true)),
+                                    false => return Ok(Value::Bool(false)),
+                                },
+                                _ => panic!("Error logical expressions should amount to bool"),
+                            }
+                        },
+                        false => return Ok(Value::Bool(false)),
+                    },
+                    _ => panic!("Error logical expressions should amount to bool"),
+                }
+            }
+            TokenType::Or => {
+                let left = self.interp_expression(left_expr).expect("Error in logical statement.");
+                let right = self.interp_expression(right_expr).expect("Error in logical statement.");
+
+                match (left,right){
+                    (Value::Bool(l), Value::Bool(r)) => Ok(Value::Bool(l || r)),
+                    _ => todo!(),
+                }
+
+            }
+            _ => todo!(),
         }
     }
 

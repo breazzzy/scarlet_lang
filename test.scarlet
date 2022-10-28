@@ -1,5 +1,10 @@
+let x = true and true;
 
-let y = 3;
-let x = (false ? false : true) ? "4 is equal to y" : "y is not equal to 4";
+let y = false or true;
 
 print x;
+print y;
+
+let t = (x and y) or false;
+
+print t;

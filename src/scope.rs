@@ -18,11 +18,12 @@ impl Scope {
         }
     }
 
-    pub fn define_var(&mut self, sym: Symbol, val: Value) /*  -> Result<Value, String> */
+    pub fn define_var(&mut self, sym: Symbol, val: Value) /*-> Result<(), String>*/
     {
         if self.contains_key(&sym) {
             //    return Err("Cant define variable twice".to_string());
-            panic!("Cant define variable twice")
+            // return Err("Cant define variable twice".to_string())
+            panic!("Cant define variable twice. [CONSIDER GETTING BETTER ERROR REPORTING THIS SHOULD BE EASY]")
         }
         // println!("{} defined as {}", sym.name.clone(), val);
         self.values.insert(sym.name, val);

@@ -34,6 +34,9 @@ impl Parser {
         if self.matcher(TokenType::LeftSquigly) {
             return self.block();
         }
+        if self.matcher(TokenType::If){
+            return self.if_statement()
+        }
 
         return self.expression_statement();
     }
@@ -79,6 +82,7 @@ impl Parser {
 
     // x=y
     fn assignment(&mut self) -> Result<Statement, String> {
+
         if self.peek().token_type == TokenType::Identifier {
             return self.assign_var();
         }
@@ -92,7 +96,7 @@ impl Parser {
     }
 
     fn ternary(&mut self) -> Expression {
-        let ident: Expression = self.equality();
+        let ident: Expression = self.or();
         if self.matcher(TokenType::Ternary){
             let r0 = self.expression();
             let _ = self.consume(TokenType::Colon);
@@ -313,5 +317,39 @@ impl Parser {
         self.consume(TokenType::Semicolon)
             .expect("Expect ; after variable assignment");
         return Ok(Statement::Assignment(Symbol { name: name.lex }, expr));
+    }
+
+    fn if_statement(&mut self) -> Result<Statement, String> {
+        let p = self.expression();
+        // self.consume(TokenType::RightSquigly);
+        let then_statement = self.statement().expect("Error on then statement");
+        let mut else_statment : Option<Statement> = None;
+        
+        if self.matcher(TokenType::Else){
+            else_statment = Some(self.statement().expect("Error on else statement"));
+        }
+
+        return Ok(Statement::If(p, Box::new(then_statement), Box::new(else_statment)));
+    }
+
+    fn or(&mut self) -> Expression {
+        let mut expr = self.and();
+        while self.matcher(TokenType::Or) {
+            let operator = self.previous();
+            let right = self.and();
+            expr = Expression::Logical(Box::new(expr), operator, Box::new(right));
+        }
+
+        return expr;
+    }
+
+    fn and(&mut self) -> Expression {
+        let mut expr = self.equality();
+        while self.matcher(TokenType::And) {
+            let operator = self.previous();
+            let right = self.equality();
+            expr = Expression::Logical(Box::new(expr), operator, Box::new(right));
+        }
+        return expr;
     }
 }

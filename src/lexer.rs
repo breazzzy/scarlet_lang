@@ -59,7 +59,7 @@ impl Lexer {
             line: self.line,
         });
         // self.tokens.iter().map(|t| println!("{}", t));
-        println!("{:?}", self.tokens);
+        // println!("{:?}", self.tokens);
     }
 
     pub fn scan_token(&mut self) {
@@ -131,9 +131,9 @@ impl Lexer {
             ' ' | '\r' | '\t' => {} // Do nothing with white space
             '\n' => self.line += 1,
             _ => {
-                if self.is_digit(c) {
+                if c.is_digit(10) {
                     self.number();
-                } else if self.is_alpha(c) {
+                } else if c.is_alphabetic() {
                     self.identifier();
                 } else {
                     panic!("Unexpected Charecter {} on line {}", c, self.line)
@@ -194,18 +194,14 @@ impl Lexer {
         })
     }
 
-    fn is_digit(&self, c: char) -> bool {
-        return c >= '0' && c <= '9';
-    }
-
     fn number(&mut self) {
-        while self.is_digit(self.peek()) {
+        while self.peek().is_digit(10) {
             self.advance();
         }
-        if self.peek() == '.' && self.is_digit(self.peek_next()) {
+        if self.peek() == '.' && self.peek_next().is_digit(10) {
             self.advance();
 
-            while self.is_digit(self.peek()) {
+            while self.peek().is_digit(10) {
                 self.advance();
             }
         }
@@ -226,15 +222,20 @@ impl Lexer {
         return self.source.chars().nth(self.current + 1).unwrap();
     }
 
-    fn is_alpha(&self, c: char) -> bool {
-        return ('a' <= c && c >= 'z') || ('A' <= c && c >= 'Z') || c == '_';
-    }
+    // fn is_alpha(&self, c: char) -> bool {
+    //     return ('a' <= c && c >= 'z') || ('A' <= c && c >= 'Z') || c == '_';
+    // }
+
+    // fn is_digit(&self, c: char) -> bool {
+    //     return c >= '0' && c <= '9';
+    // }
 
     fn identifier(&mut self) {
-        while self.is_alpha(self.peek()) || self.is_digit(self.peek()) {
+        while self.peek().is_alphanumeric() {
             self.advance();
         }
-        let t = self.keywords.get(&self.source[self.start..self.current]);
+        let a = &self.source[self.start..self.current];
+        let t = self.keywords.get(a);
         if let Some(istype) = t {
             self.add_token(*istype);
         } else {
