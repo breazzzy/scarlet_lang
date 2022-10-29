@@ -1,5 +1,6 @@
 use core::panic;
 use std::{
+    cmp,
     collections::{btree_map::Values, HashMap},
     fmt::{Debug, Display},
 };
@@ -21,13 +22,47 @@ impl Interpreter {
     pub fn new() -> Interpreter {
         let mut global: HashMap<String, Value> = HashMap::new();
         global.insert(
-            "println".to_string(),
+            "pow".to_string(),
             Value::NativeFunction(NativeFunction {
-                name: "println".to_string(),
+                name: "pow".to_string(),
+                arity: 2,
+                callable: |_, args| match (args[0].clone(), args[1].clone()) {
+                    (Value::Number(base), Value::Number(pow)) => Ok(Value::Number(base.powf(pow))),
+                    (_, _) => panic!("Pow function can only take numbers as arguments"),
+                },
+            }),
+        );
+
+        global.insert(
+            "min".to_string(),
+            Value::NativeFunction(NativeFunction {
+                name: "min".to_string(),
+                arity: 2,
+                callable: |_, args| match (args[0].clone(), args[1].clone()) {
+                    (Value::Number(a), Value::Number(b)) => Ok(Value::Number(f64::min(a, b))),
+                    (_, _) => panic!("Min function can only take numbers as arguments"),
+                },
+            }),
+        );
+        global.insert(
+            "max".to_string(),
+            Value::NativeFunction(NativeFunction {
+                name: "max".to_string(),
+                arity: 2,
+                callable: |_, args| match (args[0].clone(), args[1].clone()) {
+                    (Value::Number(a), Value::Number(b)) => Ok(Value::Number(f64::max(a, b))),
+                    (_, _) => panic!("Max function can only take numbers as arguments"),
+                },
+            }),
+        );
+        global.insert(
+            "abs".to_string(),
+            Value::NativeFunction(NativeFunction {
+                name: "abs".to_string(),
                 arity: 1,
-                callable: |_, args| {
-                    print!("{}", args[0]);
-                    return Ok(args[0].clone());
+                callable: |_, args| match args[0].clone() {
+                    Value::Number(a) => Ok(Value::Number(a.abs())),
+                    _ => panic!("Abs function can only take a number as an argument"),
                 },
             }),
         );
