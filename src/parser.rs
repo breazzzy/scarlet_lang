@@ -12,10 +12,7 @@ pub struct Parser {
 
 impl Parser {
     pub fn new(tokens: Vec<Token>) -> Parser {
-        Parser {
-            tokens,
-            current: 0,
-        }
+        Parser { tokens, current: 0 }
     }
 
     pub fn parse(&mut self) -> Result<Vec<Statement>, String> {
@@ -26,7 +23,6 @@ impl Parser {
         return Ok(stmts);
     }
 
-
     fn statement(&mut self) -> Result<Statement, String> {
         if self.matcher(TokenType::Print) {
             return self.print_statement();
@@ -34,8 +30,8 @@ impl Parser {
         if self.matcher(TokenType::LeftSquigly) {
             return self.block();
         }
-        if self.matcher(TokenType::If){
-            return self.if_statement()
+        if self.matcher(TokenType::If) {
+            return self.if_statement();
         }
 
         return self.expression_statement();
@@ -82,7 +78,6 @@ impl Parser {
 
     // x=y
     fn assignment(&mut self) -> Result<Statement, String> {
-
         if self.peek().token_type == TokenType::Identifier {
             return self.assign_var();
         }
@@ -92,12 +87,11 @@ impl Parser {
     // 2+2
     fn expression(&mut self) -> Expression {
         return self.ternary();
-
     }
 
     fn ternary(&mut self) -> Expression {
         let ident: Expression = self.or();
-        if self.matcher(TokenType::Ternary){
+        if self.matcher(TokenType::Ternary) {
             let r0 = self.expression();
             let _ = self.consume(TokenType::Colon);
             let r1 = self.expression();
@@ -156,7 +150,7 @@ impl Parser {
         };
         return self.peek().token_type == t;
     }
-    // Move to next token 
+    // Move to next token
     fn advance(&mut self) -> Token {
         if !self.end_of_file() {
             self.current += 1;
@@ -182,7 +176,7 @@ impl Parser {
     // This function only exists for clarity
     // self.term and self.factor are both binary expressions they are seperated for purposes of the order of operations
     // This function just makes the order a little more clear
-    fn binary(&mut self) -> Expression{
+    fn binary(&mut self) -> Expression {
         self.term()
     }
 
@@ -208,15 +202,47 @@ impl Parser {
         }
         return expr;
     }
-    // !true // -x 
+    // !true // -x
     fn unary(&mut self) -> Expression {
         if self.matcher(TokenType::Not) || self.matcher(TokenType::Minus) {
             let operator = self.previous();
             let right = self.unary();
             return Expression::Unary(operator, Box::new(right));
         } else {
-            return self.primary();
+            return self.call();
         }
+    }
+
+    //Function calling
+    fn call(&mut self) -> Expression {
+        let mut expr = self.primary();
+        loop {
+            if self.matcher(TokenType::LeftParen) {
+                expr = self.finish_call(expr);
+                // println!("{:?}", expr);
+            } else {
+                break;
+            }
+        }
+
+        expr
+    }
+
+    fn finish_call(&mut self, callee: Expression) -> Expression {
+        let mut args: Vec<Expression> = vec![];
+        if !self.check(TokenType::RightParen) {
+            loop {
+                let a = self.expression();
+                args.push(a);
+                if !self.matcher(TokenType::Comma) {
+                    break;
+                }
+            }
+        }
+        let token = self
+            .consume(TokenType::RightParen)
+            .expect("Error: ')' expected at end of args.");
+        return Expression::Call(Box::new(callee), token, args);
     }
 
     // Bottom of tree all literals, parenthesis and identifiers.
@@ -241,7 +267,7 @@ impl Parser {
             return Expression::Grouping(Box::new(expr));
         }
         if self.matcher(TokenType::Identifier) {
-            return Expression::Variable(Symbol {
+            return Expression::Primary(Symbol {
                 name: self.previous().lex,
             });
         }
@@ -261,7 +287,7 @@ impl Parser {
     // For example if we have a declaration the code should look like
     // let IDENTIFIER = EXPRESSION;
     // After identifier we know the next token should be =. (The Assignment token type)
-    // if self.constime(TokenType::Assignment [=]) dosn't return true there must be a syntax error on the user's end 
+    // if self.constime(TokenType::Assignment [=]) dosn't return true there must be a syntax error on the user's end
     fn consume(&mut self, t: TokenType) -> Result<Token, String> {
         if self.check(t) {
             return Ok(self.advance());
@@ -323,13 +349,17 @@ impl Parser {
         let p = self.expression();
         // self.consume(TokenType::RightSquigly);
         let then_statement = self.statement().expect("Error on then statement");
-        let mut else_statment : Option<Statement> = None;
-        
-        if self.matcher(TokenType::Else){
+        let mut else_statment: Option<Statement> = None;
+
+        if self.matcher(TokenType::Else) {
             else_statment = Some(self.statement().expect("Error on else statement"));
         }
 
-        return Ok(Statement::If(p, Box::new(then_statement), Box::new(else_statment)));
+        return Ok(Statement::If(
+            p,
+            Box::new(then_statement),
+            Box::new(else_statment),
+        ));
     }
 
     fn or(&mut self) -> Expression {

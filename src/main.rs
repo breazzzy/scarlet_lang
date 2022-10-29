@@ -1,34 +1,30 @@
-use std::{fs, process};
+use std::{env, fs};
 
 mod expression;
+mod function;
 mod interpreter;
-mod parser;
 mod lexer;
+mod parser;
 mod scope;
 mod statement;
 mod token;
 
 use interpreter::Interpreter;
-use parser::Parser;
 use lexer::Lexer;
+use parser::Parser;
 use token::Token;
 
 static mut HAD_ERROR: bool = false;
 
 fn main() {
-    read_file("test.scarlet");
+    let args: Vec<String> = env::args().collect();
+    let path = &args[1];
+    read_file(path);
 }
 
 fn read_file(path: &str) {
     let c = fs::read_to_string(path).expect("Couldn't read file");
     run(c);
-}
-
-fn error(line: i32, msg: String) {
-    println!("[Line {line}] error");
-    unsafe {
-        HAD_ERROR = true;
-    }
 }
 
 fn run(src: String) {

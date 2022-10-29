@@ -1,12 +1,11 @@
-use std::{
-    collections::HashMap,
-};
+use std::collections::HashMap;
 
-use crate::{expression::Symbol, interpreter::Value};
+use crate::{expression::Symbol, interpreter::Value, statement::Statement};
 
 #[derive(Clone)]
 pub struct Scope {
     pub values: HashMap<String, Value>,
+    // pub funcs: HashMap<String, Function>,
     pub enclosing: Option<Box<Scope>>,
 }
 
@@ -14,6 +13,7 @@ impl Scope {
     pub fn new(enclosing: Option<Box<Scope>>) -> Scope {
         Scope {
             values: HashMap::new(),
+            // funcs: HashMap::new(),
             enclosing: enclosing,
         }
     }
@@ -21,13 +21,13 @@ impl Scope {
     pub fn define_var(&mut self, sym: Symbol, val: Value) /*-> Result<(), String>*/
     {
         if self.contains_key(&sym) {
-            //    return Err("Cant define variable twice".to_string());
-            // return Err("Cant define variable twice".to_string())
             panic!("Cant define variable twice. [CONSIDER GETTING BETTER ERROR REPORTING THIS SHOULD BE EASY]")
         }
-        // println!("{} defined as {}", sym.name.clone(), val);
         self.values.insert(sym.name, val);
-        // Ok(val)
+    }
+
+    pub fn load(&mut self, loading: HashMap<String, Value>) {
+        self.values.extend(loading);
     }
 
     pub fn contains_key(&self, key: &Symbol) -> bool {

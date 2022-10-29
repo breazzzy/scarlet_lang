@@ -1,6 +1,4 @@
-use std::{
-    fmt::{self},
-};
+use std::fmt::{self};
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum TokenType {
     Ternary, //?
