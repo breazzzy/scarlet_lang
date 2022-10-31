@@ -1,5 +1,14 @@
-use crate::interpreter::{self, Interpreter, Value};
+use crate::{interpreter::{self, Interpreter, Value}, expression::Symbol, statement::Statement};
 use std::fmt::Debug;
+
+
+pub struct Function{
+    pub name: Symbol,
+    pub params: Vec<Symbol>,
+    pub body: Vec<Statement>,
+    
+}
+
 
 #[derive(Clone)]
 pub struct NativeFunction {

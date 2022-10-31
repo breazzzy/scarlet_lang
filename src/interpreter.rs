@@ -1,7 +1,6 @@
 use core::panic;
 use std::{
-    cmp,
-    collections::{btree_map::Values, HashMap},
+    collections::HashMap,
     fmt::{Debug, Display},
 };
 

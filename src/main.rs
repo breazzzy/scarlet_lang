@@ -14,8 +14,6 @@ use lexer::Lexer;
 use parser::Parser;
 use token::Token;
 
-static mut HAD_ERROR: bool = false;
-
 fn main() {
     let args: Vec<String> = env::args().collect();
     let path = &args[1];
