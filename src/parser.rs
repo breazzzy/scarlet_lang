@@ -10,6 +10,15 @@ pub struct Parser {
     current: usize,
 }
 
+/*
+    Precedence;
+    Statements; Declaration;
+
+    Expressions;
+    Block Expression;
+
+*/
+
 impl Parser {
     pub fn new(tokens: Vec<Token>) -> Parser {
         Parser { tokens, current: 0 }
@@ -29,32 +38,8 @@ impl Parser {
         //     self.consume(TokenType::Semicolon)?;
         //     return Ok(Statement::Break);
         // }
-        if self.matcher(TokenType::While){
-            return self.while_statement();
-        }
-        if self.matcher(TokenType::LeftSquigly) {
-            return self.block();
-        }
-        if self.matcher(TokenType::If) {
-            return self.if_statement();
-        }
 
         return self.expression_statement();
-    }
-
-    // {}
-    pub fn block(&mut self) -> Result<Statement, String> {
-        let mut stmts: Vec<Statement> = vec![];
-
-        while !self.check(TokenType::RightSquigly) && !self.end_of_file() {
-            match self.declaration() {
-                Ok(stmt) => stmts.push(stmt),
-                Err(err) => return Err(err),
-            }
-        }
-        self.consume(TokenType::RightSquigly)
-            .expect("Error ending block, } missing");
-        return Ok(Statement::Block(stmts));
     }
 
     // fn synchronize(&mut self){
@@ -83,7 +68,9 @@ impl Parser {
 
     // x=y
     fn assignment(&mut self) -> Result<Statement, String> {
-        if self.peek().token_type == TokenType::Identifier && self.peek_next().token_type == TokenType::Assignment {
+        if self.peek().token_type == TokenType::Identifier
+            && self.peek_next().token_type == TokenType::Assignment
+        {
             return self.assign_var();
         }
         return self.statement();
@@ -91,9 +78,68 @@ impl Parser {
 
     // 2+2
     fn expression(&mut self) -> Expression {
-        return self.ternary();
+        return self.while_expr();
     }
 
+    // fn while_statement(&mut self) -> Result<Statement, String> {
+    //     let condition = self.expression();
+    //     let body = self.statement()?;
+    //     let mut stmts = vec![];
+    //     match body {
+    //         Statement::Block(sts) => stmts.extend(sts),
+    //         _ => stmts.push(body),
+    //     }
+
+    //     return Ok(Statement::While(condition, stmts));
+    // }
+
+    fn while_expr(&mut self) -> Expression {
+        if self.matcher(TokenType::While) {
+            let condition = self.expression();
+            // println!("{:?}", condition);
+            let body = self.expression();
+            // println!("{:?}", body);
+
+            return Expression::WhileExpr(Box::new(condition), Box::new(body));
+        } else {
+            return self.if_expr();
+        }
+    }
+
+    //If
+    pub fn if_expr(&mut self) -> Expression {
+        if self.matcher(TokenType::If) {
+            let p = self.expression();
+            let then = self.expression();
+            let mut else_s: Option<Expression> = None;
+            if self.matcher(TokenType::Else) {
+                else_s = Some(self.expression());
+            }
+            return Expression::IfExpr(Box::new(p), Box::new(then), Box::new(else_s));
+        } else {
+            return self.block();
+        }
+    }
+
+    // {}
+    pub fn block(&mut self) -> Expression {
+        let mut stmts: Vec<Statement> = vec![];
+
+        if self.matcher(TokenType::LeftSquigly) {
+            while !self.check(TokenType::RightSquigly) && !self.end_of_file() {
+                match self.declaration() {
+                    Ok(stmt) => stmts.push(stmt),
+                    Err(err) => panic!("{}", err),
+                }
+            }
+            self.consume(TokenType::RightSquigly)
+                .expect("Error ending block, } missing");
+            return Expression::BlockExpr(stmts);
+        } else {
+            return self.ternary();
+        }
+    }
+    //?
     fn ternary(&mut self) -> Expression {
         let ident: Expression = self.or();
         if self.matcher(TokenType::Ternary) {
@@ -103,6 +149,27 @@ impl Parser {
             return Expression::Ternary(Box::new(ident), Box::new(r0), Box::new(r1));
         }
         return ident;
+    }
+    //or
+    fn or(&mut self) -> Expression {
+        let mut expr = self.and();
+        while self.matcher(TokenType::Or) {
+            let operator = self.previous();
+            let right = self.and();
+            expr = Expression::Logical(Box::new(expr), operator, Box::new(right));
+        }
+
+        return expr;
+    }
+    //and
+    fn and(&mut self) -> Expression {
+        let mut expr = self.equality();
+        while self.matcher(TokenType::And) {
+            let operator = self.previous();
+            let right = self.equality();
+            expr = Expression::Logical(Box::new(expr), operator, Box::new(right));
+        }
+        return expr;
     }
 
     // x == y
@@ -299,8 +366,8 @@ impl Parser {
         }
 
         Err(format!(
-            "[Parser Error] @Line {}",
-            self.tokens[self.current].line
+            "[Parser Error] Cant consume {:?} @Line {}",
+            t, self.tokens[self.current].line
         ))
     }
 
@@ -315,8 +382,14 @@ impl Parser {
     // Statment for expression
     fn expression_statement(&mut self) -> Result<Statement, String> {
         let ex = self.expression();
-        self.consume(TokenType::Semicolon)
-            .expect("; Expected after expression");
+        match ex {
+            Expression::BlockExpr(_) => (),
+            Expression::IfExpr(_, _, _) => (),
+            Expression::WhileExpr(_, _) => (),
+            _ => _ = self.consume(TokenType::Semicolon)?,
+        }
+        // self.consume(TokenType::Semicolon)
+        //     .expect("; Expected after expression");
         return Ok(Statement::Expression(ex));
     }
 
@@ -345,58 +418,17 @@ impl Parser {
         self.consume(TokenType::Assignment)
             .expect("Expect = for assignment expression");
         let expr = self.expression();
-        self.consume(TokenType::Semicolon)
-            .expect("Expect ; after variable assignment");
+        match expr {
+            Expression::BlockExpr(_) => (),
+            Expression::IfExpr(_, _, _) => (),
+            Expression::WhileExpr(_, _) => (),
+            _ => {
+                _ = self
+                    .consume(TokenType::Semicolon)
+                    .expect("Expect ; after variable assignment")
+            }
+        }
+
         return Ok(Statement::Assignment(Symbol { name: name.lex }, expr));
-    }
-
-    fn if_statement(&mut self) -> Result<Statement, String> {
-        let p = self.expression();
-        // self.consume(TokenType::RightSquigly);
-        let then_statement = self.statement().expect("Error on then statement");
-        let mut else_statment: Option<Statement> = None;
-
-        if self.matcher(TokenType::Else) {
-            else_statment = Some(self.statement().expect("Error on else statement"));
-        }
-
-        return Ok(Statement::If(
-            p,
-            Box::new(then_statement),
-            Box::new(else_statment),
-        ));
-    }
-
-    fn or(&mut self) -> Expression {
-        let mut expr = self.and();
-        while self.matcher(TokenType::Or) {
-            let operator = self.previous();
-            let right = self.and();
-            expr = Expression::Logical(Box::new(expr), operator, Box::new(right));
-        }
-
-        return expr;
-    }
-
-    fn and(&mut self) -> Expression {
-        let mut expr = self.equality();
-        while self.matcher(TokenType::And) {
-            let operator = self.previous();
-            let right = self.equality();
-            expr = Expression::Logical(Box::new(expr), operator, Box::new(right));
-        }
-        return expr;
-    }
-
-    fn while_statement(&mut self) -> Result<Statement, String> {
-        let condition = self.expression();
-        let body = self.statement()?;
-        let mut stmts = vec![];
-        match body {
-            Statement::Block(sts) => stmts.extend(sts),
-            _ => stmts.push(body),
-        }
-
-        return Ok(Statement::While(condition, stmts));
     }
 }

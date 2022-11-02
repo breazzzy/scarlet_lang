@@ -1,4 +1,54 @@
-let x = 0;
-while(x < 10){
-    x = println(x+1);
+let testifinwhile = 4;
+
+let berealwitne = while (if testifinwhile > 0{
+    true;
+}else{
+    false;
+}){
+    println("still going");
+    testifinwhile = testifinwhile - 1;
+    testifinwhile;
+};
+
+println(berealwitne);
+
+
+let b = 1;
+let z = 0;
+#while (b < 10){
+#    b = println(b+1);
+#    z = println(2);
+#
+#}
+
+if true{
+    println("True");
 }
+
+let a = if true{
+    false;
+}else{
+    true;
+};
+
+println(a);
+
+
+
+let x = {
+    let y = 10;
+    println(y+5);
+    max(y,40);
+};
+
+x = {
+    10+1;
+}
+
+println(x);
+
+{
+    let abc = 10;
+}
+
+#println(abc);

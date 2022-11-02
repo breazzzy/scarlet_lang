@@ -1,6 +1,9 @@
 use std::fmt::Debug;
 
-use crate::{token::{Literal, Token}, statement::Statement};
+use crate::{
+    statement::Statement,
+    token::{Literal, Token},
+};
 
 #[derive(Clone)]
 pub enum Expression {
@@ -13,7 +16,13 @@ pub enum Expression {
     // Assignment(Symbol, Box<Expression>),
     Primary(Symbol),                               //Variable
     Call(Box<Expression>, Token, Vec<Expression>), //Callee, args
-    // IfExpr(Box<Expression>, )
+    BlockExpr(Vec<Statement>),
+    IfExpr(
+        Box<Expression>,
+        Box<crate::expression::Expression>,
+        Box<Option<crate::expression::Expression>>,
+    ),
+    WhileExpr(Box<Expression>, Box<Expression>),
 }
 
 impl Debug for Expression {
@@ -47,14 +56,16 @@ impl Debug for Expression {
                 .field(arg1)
                 .field(arg2)
                 .finish(),
-            Expression::Binary(_, _, _) => todo!(),
-            Expression::Logical(_, _, _) => todo!(),
-            Expression::Unary(_, _) => todo!(),
-            Expression::Literal(_) => todo!(),
-            Expression::Grouping(_) => todo!(),
-            Expression::Ternary(_, _, _) => todo!(),
-            Expression::Primary(_) => todo!(),
-            Expression::Call(_, _, _) => todo!(),
+            Self::BlockExpr(arg0) => f.debug_tuple("BlockExpr").field(arg0).finish(),
+            Self::IfExpr(arg0, arg1, arg2) => f
+                .debug_tuple("IfExpr")
+                .field(arg0)
+                .field(arg1)
+                .field(arg2)
+                .finish(),
+            Self::WhileExpr(arg0, arg1) => {
+                f.debug_tuple("WhileExpr").field(arg0).field(arg1).finish()
+            }
         }
     }
 }

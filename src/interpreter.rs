@@ -8,7 +8,7 @@ use crate::{
     expression::{Expression, Symbol},
     function::{Callable, NativeFunction},
     scope::Scope,
-    statement::{Statement, self},
+    statement::Statement,
     token::{Literal, Token, TokenType},
 };
 
@@ -70,7 +70,10 @@ impl Interpreter {
             Value::NativeFunction(NativeFunction {
                 name: "print".to_string(),
                 arity: 1,
-                callable: |_, args| {print!("{}", args[0].clone()); return Ok(args[0].clone())},
+                callable: |_, args| {
+                    print!("{}", args[0].clone());
+                    return Ok(args[0].clone());
+                },
             }),
         );
         global.insert(
@@ -78,7 +81,10 @@ impl Interpreter {
             Value::NativeFunction(NativeFunction {
                 name: "println".to_string(),
                 arity: 1,
-                callable: |_, args| {println!("{}", args[0].clone()); return Ok(args[0].clone())},
+                callable: |_, args| {
+                    println!("{}", args[0].clone());
+                    return Ok(args[0].clone());
+                },
             }),
         );
         let mut scope = Scope::new(None);
@@ -101,38 +107,40 @@ impl Interpreter {
     pub fn interp_statement(&mut self, stmt: Statement) -> Result<(), String> {
         match stmt {
             Statement::Declaration(sym, expr) => self.interp_declaration(sym, expr),
-            Statement::Expression(expr) => {let _ = self.interp_expression(expr); Ok(())},
+            Statement::Expression(expr) => {
+                let _ = self.interp_expression(expr);
+                Ok(())
+            }
             Statement::Assignment(sym, expr) => self.interp_assignment(sym, expr),
-            Statement::Block(stmts) => self.interp_block(stmts),
-            Statement::If(c, t, e) => self.interp_if(c, *t, e),
-            Statement::While(condition, body) => self.interp_while(condition,body),
+            // Statement::Block(stmts) => self.interp_block(stmts),
+            // Statement::While(condition, body) => self.interp_while(condition, body),
             Statement::Break => Err("Break only allowed in loops".to_string()), // We s
-            // Statement::Break => 
-            // Statement::Function(stmts, params) => todo!(),//self.interp_fdeclaration(stmts, params),
+                                                                                // Statement::Break =>
+                                                                                // Statement::Function(stmts, params) => todo!(),//self.interp_fdeclaration(stmts, params),
         }
     }
 
-    pub fn interp_block(&mut self, stmts: Vec<Statement>) -> Result<(), String> {
-        //Create new scope
-        self.program_scope = Scope::new(Some(Box::new(self.program_scope.clone())));
-        // self.program_scope = block_scope;
-        // block_scope.enclosing =
-        for stmt in stmts {
-            // if let Statement::Break = stmt {
-            //     return Err("BREAK".to_string());
-            // } else {self.interp_statement(stmt);}
-            self.interp_statement(stmt)?;
-        }
-        //End block and revert to previous scope
-        if let Some(scope) = &self.program_scope.enclosing {
-            self.program_scope = *scope.clone();
-        } else {
-            //Something has gone horribly wrong
-            panic!("Scope no longer exists")
-            //This should be impossible
-        }
-        Ok(())
-    }
+    // pub fn interp_block(&mut self, stmts: Vec<Statement>) -> Result<(), String> {
+    //     //Create new scope
+    //     self.program_scope = Scope::new(Some(Box::new(self.program_scope.clone())));
+    //     // self.program_scope = block_scope;
+    //     // block_scope.enclosing =
+    //     for stmt in stmts {
+    //         // if let Statement::Break = stmt {
+    //         //     return Err("BREAK".to_string());
+    //         // } else {self.interp_statement(stmt);}
+    //         self.interp_statement(stmt)?;
+    //     }
+    //     //End block and revert to previous scope
+    //     if let Some(scope) = &self.program_scope.enclosing {
+    //         self.program_scope = *scope.clone();
+    //     } else {
+    //         //Something has gone horribly wrong
+    //         panic!("Scope no longer exists")
+    //         //This should be impossible
+    //     }
+    //     Ok(())
+    // }
 
     pub fn interp_expression(&mut self, expr: Expression) -> Result<Value, String> {
         match expr {
@@ -144,7 +152,9 @@ impl Interpreter {
             Expression::Ternary(i, r0, r1) => self.interp_ternary(i, r0, r1),
             Expression::Logical(r, o, l) => self.interp_logical(*r, o, *l),
             Expression::Call(callee, t, args) => self.interp_call(callee, t, args),
-            // Expression::BlockExpr(stmts) => self.interp_blockexpr(stmts),
+            Expression::BlockExpr(stmts) => self.interp_blockexpr(stmts),
+            Expression::IfExpr(conditon, then, elses) => self.inetrp_ifexpr(conditon, then, elses),
+            Expression::WhileExpr(conditon, body) => self.inter_whileexpr(conditon, body),
             // Expression::Assignment(sym, expr) => Ok(self.interpret_assignment(sym, expr)),
             // _ => panic!("Error on interpreting expression. Unkown expression"),
         }
@@ -383,29 +393,79 @@ impl Interpreter {
         //Create new scope
     }
 
+    fn interp_blockexpr(&mut self, stmts: Vec<Statement>) -> Result<Value, String> {
+        self.program_scope = Scope::new(Some(Box::new(self.program_scope.clone())));
+        let mut last: Value = Value::Nil;
+        for stmt in stmts {
+            match stmt {
+                Statement::Expression(ex) => last = self.interp_expression(ex)?,
+                _ => {
+                    self.interp_statement(stmt)?;
+                    last = Value::Nil
+                }
+            }
+        }
+        //End block and revert to previous scope
+        if let Some(scope) = &self.program_scope.enclosing {
+            self.program_scope = *scope.clone();
+        } else {
+            //Something has gone horribly wrong
+            panic!("Scope no longer exists")
+            //This should be impossible
+        }
+        return Ok(last);
+    }
+
+    fn inetrp_ifexpr(
+        &mut self,
+        conditon: Box<Expression>,
+        then: Box<Expression>,
+        elses: Box<Option<Expression>>,
+    ) -> Result<Value, String> {
+        match self
+            .interp_expression(*conditon)
+            .expect("Error interpreting if statement")
+        {
+            Value::Bool(b) => match b {
+                true => self.interp_expression(*then),
+                false => match *elses {
+                    Some(expr) => self.interp_expression(expr),
+                    None => return Ok(Value::Nil),
+                },
+            },
+            _ => return Err("Condition of if statement does not amount to boolean".to_string()), //Error expression does not amount to true false value
+        }
+    }
+
+    fn inter_whileexpr(
+        &mut self,
+        conditon: Box<Expression>,
+        body: Box<Expression>,
+    ) -> Result<Value, String> {
+        let mut last = Value::Nil;
+        while let Value::Bool(v) = self.interp_expression(*conditon.clone())? {
+            if let true = v {
+                last = self.interp_expression(*body.clone())?;
+            } else {
+                return Ok(last);
+            }
+        }
+        return Ok(Value::Nil);
+    }
+
     fn interp_while(&mut self, condition: Expression, body: Vec<Statement>) -> Result<(), String> {
         // let conditional = self.interp_expression(condition)?;
-        while let Value::Bool(v) = self.interp_expression(condition.clone())?{
+        while let Value::Bool(v) = self.interp_expression(condition.clone())? {
             if let true = v {
                 body.clone().into_iter().enumerate().for_each(|ele| {
-                self.interp_statement(ele.1).expect("Error on while loop body");
-            })
+                    self.interp_statement(ele.1)
+                        .expect("Error on while loop body");
+                })
             } else {
                 return Ok(());
             }
         }
-        return Ok(());    
-    }
-
-    fn interp_blockexpr(&mut self, stmts: Vec<Statement>) -> Result<Value, String> {
-        let mut last : Value = Value::Nil;
-        for stmt in stmts{
-            match stmt {
-                Statement::Expression(ex) => last =  self.interp_expression(ex)?,
-                _ => {self.interp_statement(stmt); last = Value::Nil}
-            }
-        }
-        return Ok(last);
+        return Ok(());
     }
 }
 
