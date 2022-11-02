@@ -1,13 +1,4 @@
-let x = pow(4,4);
-
-let y = min(5.5, 1.2);
-
-print x * y;
-
-let a = max(5,10.4);
-
-print x * y * a;
-
-let b = (x * y * a * -1);
-print b;
-print abs(b);
+let x = 0;
+while(x < 10){
+    x = println(x+1);
+}

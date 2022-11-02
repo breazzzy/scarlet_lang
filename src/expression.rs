@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-use crate::token::{Literal, Token};
+use crate::{token::{Literal, Token}, statement::Statement};
 
 #[derive(Clone)]
 pub enum Expression {
@@ -13,6 +13,7 @@ pub enum Expression {
     // Assignment(Symbol, Box<Expression>),
     Primary(Symbol),                               //Variable
     Call(Box<Expression>, Token, Vec<Expression>), //Callee, args
+    // IfExpr(Box<Expression>, )
 }
 
 impl Debug for Expression {
@@ -46,6 +47,14 @@ impl Debug for Expression {
                 .field(arg1)
                 .field(arg2)
                 .finish(),
+            Expression::Binary(_, _, _) => todo!(),
+            Expression::Logical(_, _, _) => todo!(),
+            Expression::Unary(_, _) => todo!(),
+            Expression::Literal(_) => todo!(),
+            Expression::Grouping(_) => todo!(),
+            Expression::Ternary(_, _, _) => todo!(),
+            Expression::Primary(_) => todo!(),
+            Expression::Call(_, _, _) => todo!(),
         }
     }
 }

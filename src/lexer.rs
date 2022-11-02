@@ -26,13 +26,14 @@ impl Lexer {
         words.insert("if".to_string(), TokenType::If);
         words.insert("nil".to_string(), TokenType::Nil);
         words.insert("or".to_string(), TokenType::Or);
-        words.insert("print".to_string(), TokenType::Print);
+        // words.insert("print".to_string(), TokenType::Print);
         words.insert("return".to_string(), TokenType::Return);
         words.insert("super".to_string(), TokenType::Super);
         words.insert("this".to_string(), TokenType::This);
         words.insert("true".to_string(), TokenType::True);
         words.insert("let".to_string(), TokenType::Let);
         words.insert("while".to_string(), TokenType::While);
+        words.insert("break".to_string(), TokenType::Break);
         Lexer {
             source: src.to_string(),
             tokens: vec![],

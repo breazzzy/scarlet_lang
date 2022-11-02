@@ -49,6 +49,7 @@ pub enum TokenType {
     RightSquigly, // }
     //
     TERMINATE,
+    Break,
 }
 
 #[derive(Debug, Clone)]

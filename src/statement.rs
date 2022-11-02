@@ -3,15 +3,33 @@ use crate::expression::{
     Symbol,
 };
 
+use std::fmt::Debug;
+
 #[derive(Clone)]
 pub enum Statement /*StatementType */ {
-    Print(Expression),                       // print x
+    // Print(Expression),                       // print x
     Expression(Expression),                  // 2+2 // x+y
     Declaration(Symbol, Option<Expression>), // let x = 2
     Assignment(Symbol, Expression),          // x = 2
     Block(Vec<Statement>),
     If(Expression, Box<Statement>, Box<Option<Statement>>), //If then else
-                                                            // Function(Vec<Statement>, Vec<Symbol>), // statments // parameters
+    // Function(Vec<Statement>, Vec<Symbol>), // statments // parameters
+    While(Expression, Vec<Statement>),
+    Break,
+}
+
+impl Debug for Statement{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Expression(arg0) => f.debug_tuple("Expression").field(arg0).finish(),
+            Self::Declaration(arg0, arg1) => f.debug_tuple("Declaration").field(arg0).field(arg1).finish(),
+            Self::Assignment(arg0, arg1) => f.debug_tuple("Assignment").field(arg0).field(arg1).finish(),
+            Self::Block(arg0) => f.debug_tuple("Block").field(arg0).finish(),
+            Self::If(arg0, arg1, arg2) => f.debug_tuple("If").field(arg0).field(arg1).field(arg2).finish(),
+            Self::While(arg0, arg1) => f.debug_tuple("While").field(arg0).field(arg1).finish(),
+            Self::Break => write!(f, "Break"),
+        }
+    }
 }
 
 // struct Statement{

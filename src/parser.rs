@@ -20,12 +20,17 @@ impl Parser {
         while !self.end_of_file() {
             stmts.push(self.declaration().expect("Statement not valid parsing"));
         }
+        // println!("{:?}", stmts);
         return Ok(stmts);
     }
 
     fn statement(&mut self) -> Result<Statement, String> {
-        if self.matcher(TokenType::Print) {
-            return self.print_statement();
+        // if self.matcher(TokenType::Break){
+        //     self.consume(TokenType::Semicolon)?;
+        //     return Ok(Statement::Break);
+        // }
+        if self.matcher(TokenType::While){
+            return self.while_statement();
         }
         if self.matcher(TokenType::LeftSquigly) {
             return self.block();
@@ -78,7 +83,7 @@ impl Parser {
 
     // x=y
     fn assignment(&mut self) -> Result<Statement, String> {
-        if self.peek().token_type == TokenType::Identifier {
+        if self.peek().token_type == TokenType::Identifier && self.peek_next().token_type == TokenType::Assignment {
             return self.assign_var();
         }
         return self.statement();
@@ -301,12 +306,12 @@ impl Parser {
 
     //The interpreter reads statments
     // Statment for print
-    fn print_statement(&mut self) -> Result<Statement, String> {
-        let ex = self.expression();
-        self.consume(TokenType::Semicolon)
-            .expect("Expect ; after statement");
-        return Ok(Statement::Print(ex));
-    }
+    // fn print_statement(&mut self) -> Result<Statement, String> {
+    //     let ex = self.expression();
+    //     self.consume(TokenType::Semicolon)
+    //         .expect("Expect ; after statement");
+    //     return Ok(Statement::Print(ex));
+    // }
     // Statment for expression
     fn expression_statement(&mut self) -> Result<Statement, String> {
         let ex = self.expression();
@@ -381,5 +386,17 @@ impl Parser {
             expr = Expression::Logical(Box::new(expr), operator, Box::new(right));
         }
         return expr;
+    }
+
+    fn while_statement(&mut self) -> Result<Statement, String> {
+        let condition = self.expression();
+        let body = self.statement()?;
+        let mut stmts = vec![];
+        match body {
+            Statement::Block(sts) => stmts.extend(sts),
+            _ => stmts.push(body),
+        }
+
+        return Ok(Statement::While(condition, stmts));
     }
 }

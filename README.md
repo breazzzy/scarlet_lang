@@ -4,7 +4,7 @@ Tiny programming language written in Rust.
 
 ## Description
 
-This is a passion project im making for practice and fun :)!
+This is a passion project im making for practice and fun, while I have time between classes/work.
 
 ## How to run
 

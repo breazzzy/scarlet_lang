@@ -8,7 +8,7 @@ use crate::{
     expression::{Expression, Symbol},
     function::{Callable, NativeFunction},
     scope::Scope,
-    statement::Statement,
+    statement::{Statement, self},
     token::{Literal, Token, TokenType},
 };
 
@@ -65,6 +65,22 @@ impl Interpreter {
                 },
             }),
         );
+        global.insert(
+            "print".to_string(),
+            Value::NativeFunction(NativeFunction {
+                name: "print".to_string(),
+                arity: 1,
+                callable: |_, args| {print!("{}", args[0].clone()); return Ok(args[0].clone())},
+            }),
+        );
+        global.insert(
+            "println".to_string(),
+            Value::NativeFunction(NativeFunction {
+                name: "println".to_string(),
+                arity: 1,
+                callable: |_, args| {println!("{}", args[0].clone()); return Ok(args[0].clone())},
+            }),
+        );
         let mut scope = Scope::new(None);
         scope.load(global);
         Interpreter {
@@ -84,16 +100,14 @@ impl Interpreter {
 
     pub fn interp_statement(&mut self, stmt: Statement) -> Result<(), String> {
         match stmt {
-            Statement::Print(expr) => Ok(println!(
-                "{}",
-                self.interp_expression(expr)
-                    .expect("Expected expression. [Error on print statment]")
-            )),
             Statement::Declaration(sym, expr) => self.interp_declaration(sym, expr),
-            Statement::Expression(expr) => Ok(println!("Interpreter: Ghost expression {:?}", expr)),
+            Statement::Expression(expr) => {let _ = self.interp_expression(expr); Ok(())},
             Statement::Assignment(sym, expr) => self.interp_assignment(sym, expr),
             Statement::Block(stmts) => self.interp_block(stmts),
             Statement::If(c, t, e) => self.interp_if(c, *t, e),
+            Statement::While(condition, body) => self.interp_while(condition,body),
+            Statement::Break => Err("Break only allowed in loops".to_string()), // We s
+            // Statement::Break => 
             // Statement::Function(stmts, params) => todo!(),//self.interp_fdeclaration(stmts, params),
         }
     }
@@ -104,7 +118,10 @@ impl Interpreter {
         // self.program_scope = block_scope;
         // block_scope.enclosing =
         for stmt in stmts {
-            self.interp_statement(stmt);
+            // if let Statement::Break = stmt {
+            //     return Err("BREAK".to_string());
+            // } else {self.interp_statement(stmt);}
+            self.interp_statement(stmt)?;
         }
         //End block and revert to previous scope
         if let Some(scope) = &self.program_scope.enclosing {
@@ -127,6 +144,7 @@ impl Interpreter {
             Expression::Ternary(i, r0, r1) => self.interp_ternary(i, r0, r1),
             Expression::Logical(r, o, l) => self.interp_logical(*r, o, *l),
             Expression::Call(callee, t, args) => self.interp_call(callee, t, args),
+            // Expression::BlockExpr(stmts) => self.interp_blockexpr(stmts),
             // Expression::Assignment(sym, expr) => Ok(self.interpret_assignment(sym, expr)),
             // _ => panic!("Error on interpreting expression. Unkown expression"),
         }
@@ -364,6 +382,31 @@ impl Interpreter {
         }
         //Create new scope
     }
+
+    fn interp_while(&mut self, condition: Expression, body: Vec<Statement>) -> Result<(), String> {
+        // let conditional = self.interp_expression(condition)?;
+        while let Value::Bool(v) = self.interp_expression(condition.clone())?{
+            if let true = v {
+                body.clone().into_iter().enumerate().for_each(|ele| {
+                self.interp_statement(ele.1).expect("Error on while loop body");
+            })
+            } else {
+                return Ok(());
+            }
+        }
+        return Ok(());    
+    }
+
+    fn interp_blockexpr(&mut self, stmts: Vec<Statement>) -> Result<Value, String> {
+        let mut last : Value = Value::Nil;
+        for stmt in stmts{
+            match stmt {
+                Statement::Expression(ex) => last =  self.interp_expression(ex)?,
+                _ => {self.interp_statement(stmt); last = Value::Nil}
+            }
+        }
+        return Ok(last);
+    }
 }
 
 fn match_callable(Interpreter: &mut Interpreter, val: Value) -> Option<Box<dyn Callable>> {
@@ -379,6 +422,7 @@ pub enum Value {
     String(String),
     Bool(bool),
     NativeFunction(NativeFunction),
+    // Function(NativeFunction),
     Nil,
 }
 
