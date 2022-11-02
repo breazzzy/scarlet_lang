@@ -1,4 +1,4 @@
-# Project Title
+# Scarlett Lang
 
 Tiny programming language written in Rust.
 
