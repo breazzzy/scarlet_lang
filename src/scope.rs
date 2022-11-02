@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{expression::Symbol, interpreter::Value, statement::Statement};
+use crate::{expression::Symbol, interpreter::Value};
 
 #[derive(Clone)]
 pub struct Scope {

@@ -114,36 +114,15 @@ impl Interpreter {
             Statement::Assignment(sym, expr) => self.interp_assignment(sym, expr),
             // Statement::Block(stmts) => self.interp_block(stmts),
             // Statement::While(condition, body) => self.interp_while(condition, body),
-            Statement::Break => Err("Break only allowed in loops".to_string()), // We s
-                                                                                // Statement::Break =>
-                                                                                // Statement::Function(stmts, params) => todo!(),//self.interp_fdeclaration(stmts, params),
         }
     }
 
-    // pub fn interp_block(&mut self, stmts: Vec<Statement>) -> Result<(), String> {
-    //     //Create new scope
-    //     self.program_scope = Scope::new(Some(Box::new(self.program_scope.clone())));
-    //     // self.program_scope = block_scope;
-    //     // block_scope.enclosing =
-    //     for stmt in stmts {
-    //         // if let Statement::Break = stmt {
-    //         //     return Err("BREAK".to_string());
-    //         // } else {self.interp_statement(stmt);}
-    //         self.interp_statement(stmt)?;
-    //     }
-    //     //End block and revert to previous scope
-    //     if let Some(scope) = &self.program_scope.enclosing {
-    //         self.program_scope = *scope.clone();
-    //     } else {
-    //         //Something has gone horribly wrong
-    //         panic!("Scope no longer exists")
-    //         //This should be impossible
-    //     }
-    //     Ok(())
-    // }
-
     pub fn interp_expression(&mut self, expr: Expression) -> Result<Value, String> {
+        // println!("{:?}", expr);
         match expr {
+            Expression::BreakExpr => {
+                return Ok(Value::Break);
+            }
             Expression::Binary(l, operation, r) => self.interp_binary(l, operation, r),
             Expression::Unary(operation, ex) => self.interp_unary(operation, ex),
             Expression::Literal(a) => self.interp_literal(a),
@@ -154,7 +133,8 @@ impl Interpreter {
             Expression::Call(callee, t, args) => self.interp_call(callee, t, args),
             Expression::BlockExpr(stmts) => self.interp_blockexpr(stmts),
             Expression::IfExpr(conditon, then, elses) => self.inetrp_ifexpr(conditon, then, elses),
-            Expression::WhileExpr(conditon, body) => self.inter_whileexpr(conditon, body),
+            Expression::WhileExpr(conditon, body) => self.interp_whileexpr(conditon, body),
+            // Expression::BreakExpr() => Ok(Value::Break),
             // Expression::Assignment(sym, expr) => Ok(self.interpret_assignment(sym, expr)),
             // _ => panic!("Error on interpreting expression. Unkown expression"),
         }
@@ -285,27 +265,6 @@ impl Interpreter {
         }
     }
 
-    fn interp_if(
-        &mut self,
-        p: Expression,
-        t: Statement,
-        e: Box<Option<Statement>>,
-    ) -> Result<(), String> {
-        match self
-            .interp_expression(p)
-            .expect("Error interpreting if statement")
-        {
-            Value::Bool(b) => match b {
-                true => self.interp_statement(t),
-                false => match *e {
-                    Some(stmt) => self.interp_statement(stmt),
-                    None => return Ok(()),
-                },
-            },
-            _ => return Err("Condition of if statement does not amount to boolean".to_string()), //Error expression does not amount to true false value
-        }
-    }
-
     fn interp_logical(
         &mut self,
         left_expr: Expression,
@@ -398,7 +357,13 @@ impl Interpreter {
         let mut last: Value = Value::Nil;
         for stmt in stmts {
             match stmt {
-                Statement::Expression(ex) => last = self.interp_expression(ex)?,
+                Statement::Expression(ex) => {
+                    last = self.interp_expression(ex)?;
+                    match last {
+                        Value::Break => return Ok(Value::Break),
+                        _ => (),
+                    }
+                }
                 _ => {
                     self.interp_statement(stmt)?;
                     last = Value::Nil
@@ -427,7 +392,10 @@ impl Interpreter {
             .expect("Error interpreting if statement")
         {
             Value::Bool(b) => match b {
-                true => self.interp_expression(*then),
+                true => {
+                    let r = self.interp_expression(*then)?;
+                    return Ok(r);
+                }
                 false => match *elses {
                     Some(expr) => self.interp_expression(expr),
                     None => return Ok(Value::Nil),
@@ -437,36 +405,41 @@ impl Interpreter {
         }
     }
 
-    fn inter_whileexpr(
+    fn interp_whileexpr(
         &mut self,
         conditon: Box<Expression>,
         body: Box<Expression>,
     ) -> Result<Value, String> {
-        let mut last = Value::Nil;
+        let mut last = Value::Break;
         while let Value::Bool(v) = self.interp_expression(*conditon.clone())? {
             if let true = v {
                 last = self.interp_expression(*body.clone())?;
+                // println!("Result of interp: {:?}", last);
+                match last {
+                    Value::Break => break,
+                    _ => (),
+                }
             } else {
                 return Ok(last);
             }
         }
-        return Ok(Value::Nil);
+        return Ok(last);
     }
 
-    fn interp_while(&mut self, condition: Expression, body: Vec<Statement>) -> Result<(), String> {
-        // let conditional = self.interp_expression(condition)?;
-        while let Value::Bool(v) = self.interp_expression(condition.clone())? {
-            if let true = v {
-                body.clone().into_iter().enumerate().for_each(|ele| {
-                    self.interp_statement(ele.1)
-                        .expect("Error on while loop body");
-                })
-            } else {
-                return Ok(());
-            }
-        }
-        return Ok(());
-    }
+    // fn interp_while(&mut self, condition: Expression, body: Vec<Statement>) -> Result<(), String> {
+    //     // let conditional = self.interp_expression(condition)?;
+    //     while let Value::Bool(v) = self.interp_expression(condition.clone())? {
+    //         if let true = v {
+    //             body.clone().into_iter().enumerate().for_each(|ele| {
+    //                 self.interp_statement(ele.1)
+    //                     .expect("Error on while loop body");
+    //             })
+    //         } else {
+    //             return Ok(());
+    //         }
+    //     }
+    //     return Ok(());
+    // }
 }
 
 fn match_callable(Interpreter: &mut Interpreter, val: Value) -> Option<Box<dyn Callable>> {
@@ -484,6 +457,7 @@ pub enum Value {
     NativeFunction(NativeFunction),
     // Function(NativeFunction),
     Nil,
+    Break,
 }
 
 impl Debug for Value {
@@ -494,6 +468,7 @@ impl Debug for Value {
             Self::Bool(arg0) => f.debug_tuple("Bool").field(arg0).finish(),
             Self::NativeFunction(arg0) => f.debug_tuple("NativeFunction").field(arg0).finish(),
             Self::Nil => write!(f, "Nil"),
+            Self::Break => write!(f, "Break"),
         }
     }
 }
@@ -506,6 +481,7 @@ impl Display for Value {
             Value::Bool(b) => f.write_fmt(format_args!("{}", b)),
             Value::Nil => f.write_str("Nil"),
             Value::NativeFunction(n) => f.write_fmt(format_args!("{}", n.name)),
+            Value::Break => todo!(),
         }
     }
 }

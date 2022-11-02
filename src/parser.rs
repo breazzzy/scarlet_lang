@@ -8,6 +8,7 @@ use std::vec;
 pub struct Parser {
     tokens: Vec<Token>,
     current: usize,
+    inloop: bool, // Used for break expression
 }
 
 /*
@@ -21,7 +22,11 @@ pub struct Parser {
 
 impl Parser {
     pub fn new(tokens: Vec<Token>) -> Parser {
-        Parser { tokens, current: 0 }
+        Parser {
+            tokens,
+            current: 0,
+            inloop: false,
+        }
     }
 
     pub fn parse(&mut self) -> Result<Vec<Statement>, String> {
@@ -95,11 +100,13 @@ impl Parser {
 
     fn while_expr(&mut self) -> Expression {
         if self.matcher(TokenType::While) {
+            self.inloop = true;
             let condition = self.expression();
             // println!("{:?}", condition);
             let body = self.expression();
             // println!("{:?}", body);
 
+            self.inloop = false;
             return Expression::WhileExpr(Box::new(condition), Box::new(body));
         } else {
             return self.if_expr();
@@ -342,6 +349,16 @@ impl Parser {
             return Expression::Primary(Symbol {
                 name: self.previous().lex,
             });
+        }
+        if self.matcher(TokenType::Break) {
+            if self.inloop {
+                return Expression::BreakExpr;
+            } else {
+                panic!(
+                    "@Line {}: Break only allowed in loops",
+                    self.tokens[self.current].line
+                )
+            }
         }
         // if self.matcher(TokenType::Identifier){
         //     return

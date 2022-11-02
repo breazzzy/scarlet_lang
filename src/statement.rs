@@ -11,10 +11,9 @@ pub enum Statement /*StatementType */ {
     Expression(Expression),                  // 2+2 // x+y
     Declaration(Symbol, Option<Expression>), // let x = 2
     Assignment(Symbol, Expression),          // x = 2
-    // Block(Vec<Statement>),
-    // Function(Vec<Statement>, Vec<Symbol>), // statments // parameters
-    // While(Expression, Vec<Statement>),
-    Break,
+                                             // Block(Vec<Statement>),
+                                             // Function(Vec<Statement>, Vec<Symbol>), // statments // parameters
+                                             // While(Expression, Vec<Statement>),
 }
 
 impl Debug for Statement {
@@ -28,9 +27,7 @@ impl Debug for Statement {
                 .finish(),
             Self::Assignment(arg0, arg1) => {
                 f.debug_tuple("Assignment").field(arg0).field(arg1).finish()
-            }
-            // Self::Block(arg0) => f.debug_tuple("Block").field(arg0).finish(),
-            Self::Break => write!(f, "Break"),
+            } // Self::Block(arg0) => f.debug_tuple("Block").field(arg0).finish(),
         }
     }
 }

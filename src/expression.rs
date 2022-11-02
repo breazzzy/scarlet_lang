@@ -23,6 +23,7 @@ pub enum Expression {
         Box<Option<crate::expression::Expression>>,
     ),
     WhileExpr(Box<Expression>, Box<Expression>),
+    BreakExpr,
 }
 
 impl Debug for Expression {
@@ -66,6 +67,7 @@ impl Debug for Expression {
             Self::WhileExpr(arg0, arg1) => {
                 f.debug_tuple("WhileExpr").field(arg0).field(arg1).finish()
             }
+            Self::BreakExpr => write!(f, "BreakExpr"),
         }
     }
 }
