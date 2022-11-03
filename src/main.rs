@@ -15,6 +15,14 @@ use parser::Parser;
 use token::Token;
 
 fn main() {
+    let mut x = 2;
+    let y = if true {
+        x;
+        x+2
+    }else{
+        let x = 4;
+        x+3
+    };
     let args: Vec<String> = env::args().collect();
     let path = &args[1];
     read_file(path);

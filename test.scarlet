@@ -1,10 +1,13 @@
-let x = 0;
-while x < 10{
-    if x == 4{
-        if true{
-            break;
-        }
+fun fib_(n){
+    if n <= 1{
+        return n;
+    }else{
+        return fib_(n-1) + fib_(n-2);
     }
-    x = println(x + 1);
 }
 
+let n = 9;
+
+let an = fib_(n);
+
+println(an);

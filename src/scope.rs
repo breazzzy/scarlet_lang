@@ -34,17 +34,18 @@ impl Scope {
         if self.values.contains_key(&key.name) {
             return true;
         } else {
-            if let Some(enclosing_scope) = &self.enclosing {
-                return enclosing_scope.contains_key(key);
-            } else {
-                return false;
-            }
+            // if let Some(enclosing_scope) = &self.enclosing {
+            //     return enclosing_scope.contains_key(key);
+            // } else {
+            //     return false;
+            // }
+            false
         }
     }
 
     pub fn get_var(&self, sym: Symbol) -> Result<&Value, String> {
         match self.values.get(&sym.name) {
-            Some(v) => Ok(v),
+            Some(v) =>Ok(v),
             None => match &self.enclosing {
                 Some(e) => e.get_var(sym),
                 None => Err(format!("Symbol {} not recognized", sym.name)),

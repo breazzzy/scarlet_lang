@@ -134,7 +134,7 @@ impl Lexer {
             _ => {
                 if c.is_digit(10) {
                     self.number();
-                } else if c.is_alphabetic() {
+                } else if c.is_alphabetic() || c== '_' {
                     self.identifier();
                 } else {
                     panic!("Unexpected Charecter {} on line {}", c, self.line)
@@ -232,7 +232,7 @@ impl Lexer {
     // }
 
     fn identifier(&mut self) {
-        while self.peek().is_alphanumeric() {
+        while self.peek().is_alphanumeric() || self.peek() == '_' {
             self.advance();
         }
         let a = &self.source[self.start..self.current];

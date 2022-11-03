@@ -9,6 +9,7 @@ pub struct Parser {
     tokens: Vec<Token>,
     current: usize,
     inloop: bool, // Used for break expression
+    infunction: bool,
 }
 
 /*
@@ -26,6 +27,7 @@ impl Parser {
             tokens,
             current: 0,
             inloop: false,
+            infunction: false,
         }
     }
 
@@ -43,6 +45,12 @@ impl Parser {
         //     self.consume(TokenType::Semicolon)?;
         //     return Ok(Statement::Break);
         // }
+
+        if self.matcher(TokenType::Return){
+            let expr = self.expression();
+            self.consume(TokenType::Semicolon)?;
+            return Ok(Statement::Return(expr));
+        }
 
         return self.expression_statement();
     }
@@ -66,6 +74,9 @@ impl Parser {
     fn declaration(&mut self) -> Result<Statement, String> {
         if self.matcher(TokenType::Let) {
             return self.declare_var();
+        }
+        if self.matcher(TokenType::Fun){
+            return self.declare_fun();
         }
         return self.assignment();
         // return self.statement();
@@ -360,6 +371,17 @@ impl Parser {
                 )
             }
         }
+        
+        // if self.matcher(TokenType::Return) {
+        //     if self.infunction {
+        //         return Expression::ReturnExpr(Box::new(self.expression()));
+        //     } else {
+        //         panic!(
+        //             "@Line {}: Return only allowed in functions",
+        //             self.tokens[self.current].line
+        //         )
+        //     }
+        // }
         // if self.matcher(TokenType::Identifier){
         //     return
         // }
@@ -403,7 +425,11 @@ impl Parser {
             Expression::BlockExpr(_) => (),
             Expression::IfExpr(_, _, _) => (),
             Expression::WhileExpr(_, _) => (),
-            _ => _ = self.consume(TokenType::Semicolon)?,
+            _ => (),
+            // _ => _ = self.consume(TokenType::Semicolon)?,
+        }
+        if self.check(TokenType::Semicolon){
+            self.consume(TokenType::Semicolon);
         }
         // self.consume(TokenType::Semicolon)
         //     .expect("; Expected after expression");
@@ -447,5 +473,23 @@ impl Parser {
         }
 
         return Ok(Statement::Assignment(Symbol { name: name.lex }, expr));
+    }
+
+    fn declare_fun(&mut self) -> Result<Statement, String> {
+        let name = self.consume(TokenType::Identifier)?;
+        _ = self.consume(TokenType::LeftParen)?;
+        let mut params : Vec<Symbol> = vec![];
+        if !self.check(TokenType::RightParen){
+        loop {
+            params.push(Symbol{name : self.consume(TokenType::Identifier)?.lex});
+            if !self.matcher(TokenType::Comma){
+                break;
+            }
+        }}
+        self.consume(TokenType::RightParen)?;
+
+        let body = self.block();
+
+        return Ok(Statement::FuncDclaration(Symbol { name: name.lex }, params, body))
     }
 }

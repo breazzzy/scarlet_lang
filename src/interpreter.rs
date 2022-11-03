@@ -6,7 +6,7 @@ use std::{
 
 use crate::{
     expression::{Expression, Symbol},
-    function::{Callable, NativeFunction},
+    function::{Callable, NativeFunction, Function},
     scope::Scope,
     statement::Statement,
     token::{Literal, Token, TokenType},
@@ -15,6 +15,7 @@ use crate::{
 #[derive(Clone)]
 pub struct Interpreter {
     pub program_scope: Scope,
+    pub return_val : Option<Value>, //Current return value
 }
 
 impl Interpreter {
@@ -72,7 +73,7 @@ impl Interpreter {
                 arity: 1,
                 callable: |_, args| {
                     print!("{}", args[0].clone());
-                    return Ok(args[0].clone());
+                    return Ok(Value::Nil);
                 },
             }),
         );
@@ -83,7 +84,7 @@ impl Interpreter {
                 arity: 1,
                 callable: |_, args| {
                     println!("{}", args[0].clone());
-                    return Ok(args[0].clone());
+                    return Ok(Value::Nil);
                 },
             }),
         );
@@ -91,6 +92,7 @@ impl Interpreter {
         scope.load(global);
         Interpreter {
             program_scope: scope,
+            return_val: None,
         }
     }
 
@@ -112,6 +114,8 @@ impl Interpreter {
                 Ok(())
             }
             Statement::Assignment(sym, expr) => self.interp_assignment(sym, expr),
+            Statement::FuncDclaration(name, params, body) => self.interp_funcdecl(name,params,body),
+            Statement::Return(expr) => {self.return_val = Some(self.interp_expression(expr)?); Ok(())},
             // Statement::Block(stmts) => self.interp_block(stmts),
             // Statement::While(condition, body) => self.interp_while(condition, body),
         }
@@ -312,6 +316,19 @@ impl Interpreter {
         }
     }
 
+    
+    fn interp_funcdecl(&mut self, name: Symbol, params: Vec<Symbol>, body: Expression) -> Result<(), String> {
+        let mut stmts = vec![];
+        match body{
+            Expression::BlockExpr(a) => stmts = a,
+            _ => panic!("Funciton body must be a block. surrounded by {{ }}"),
+        }
+        let func = Function{name: name.clone(), params, body: stmts};
+        let func_value = Value::Function(func);
+        self.program_scope.define_var(name, func_value);
+        Ok(())
+    }
+
     fn interp_call(
         &mut self,
         callee: Box<Expression>,
@@ -339,16 +356,24 @@ impl Interpreter {
         args: Vec<Value>,
     ) -> Result<Value, String> {
         let callee = self.interp_expression(*callee_expr)?;
+        let mut fval;
         match match_callable(self, callee) {
             Some(f) => {
                 if args.len() != f.arity() {
                     panic!("Argument length exceeds paramter length");
                 } else {
-                    f.call(self, &args)
+                    fval = f.call(self, &args)?;
                 }
             }
             None => todo!(),
         }
+        let return_val = self.return_val.clone();
+        self.return_val = None;
+        match return_val{
+            Some(val) => Ok(val.clone()),
+            None => Ok(fval),
+        }
+
         //Create new scope
     }
 
@@ -445,6 +470,7 @@ impl Interpreter {
 fn match_callable(Interpreter: &mut Interpreter, val: Value) -> Option<Box<dyn Callable>> {
     match val {
         Value::NativeFunction(f) => Some(Box::new(f)),
+        Value::Function(f) => Some(Box::new(f)),
         _ => todo!(),
     }
 }
@@ -455,7 +481,7 @@ pub enum Value {
     String(String),
     Bool(bool),
     NativeFunction(NativeFunction),
-    // Function(NativeFunction),
+    Function(Function),
     Nil,
     Break,
 }
@@ -467,6 +493,7 @@ impl Debug for Value {
             Self::String(arg0) => f.debug_tuple("String").field(arg0).finish(),
             Self::Bool(arg0) => f.debug_tuple("Bool").field(arg0).finish(),
             Self::NativeFunction(arg0) => f.debug_tuple("NativeFunction").field(arg0).finish(),
+            Self::Function(arg0) => f.debug_tuple("Function").field(arg0).finish(),
             Self::Nil => write!(f, "Nil"),
             Self::Break => write!(f, "Break"),
         }
@@ -482,6 +509,7 @@ impl Display for Value {
             Value::Nil => f.write_str("Nil"),
             Value::NativeFunction(n) => f.write_fmt(format_args!("{}", n.name)),
             Value::Break => todo!(),
+            Value::Function(fu) => f.write_fmt(format_args!("{}", fu.name.name)),
         }
     }
 }
