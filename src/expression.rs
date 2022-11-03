@@ -22,6 +22,7 @@ pub enum Expression {
         Box<crate::expression::Expression>,
         Box<Option<crate::expression::Expression>>,
     ),
+    LoopExpr(Box<Expression>),
     WhileExpr(Box<Expression>, Box<Expression>),
     BreakExpr,
 }
@@ -39,6 +40,7 @@ impl Debug for Expression {
             Self::Call(arg0, arg1, arg2) => f.debug_tuple("Call").field(arg0).field(arg1).field(arg2).finish(),
             Self::BlockExpr(arg0) => f.debug_tuple("BlockExpr").field(arg0).finish(),
             Self::IfExpr(arg0, arg1, arg2) => f.debug_tuple("IfExpr").field(arg0).field(arg1).field(arg2).finish(),
+            Self::LoopExpr(arg0) => f.debug_tuple("LoopExpr").field(arg0).finish(),
             Self::WhileExpr(arg0, arg1) => f.debug_tuple("WhileExpr").field(arg0).field(arg1).finish(),
             Self::BreakExpr => write!(f, "BreakExpr"),
         }

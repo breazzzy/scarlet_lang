@@ -49,6 +49,7 @@ pub enum TokenType {
     //
     TERMINATE,
     Break,
+    Loop,
 }
 
 #[derive(Debug, Clone)]

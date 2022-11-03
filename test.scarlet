@@ -1,13 +1,8 @@
-fun fib(n){
-    if n <= 1{
-        n
-    }else{
-        return fib(n-1) + fib(n-2);
+let x=  4;
+loop{
+    println("Hello");
+    x = x +1;
+    if x == 15{
+        break;
     }
 }
-
-let n = 9;
-
-let fib_9 = fib(n);
-
-println(fib_9); # 34

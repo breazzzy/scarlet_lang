@@ -23,6 +23,7 @@ impl Lexer {
         words.insert("false".to_string(), TokenType::False);
         words.insert("for".to_string(), TokenType::For);
         words.insert("fun".to_string(), TokenType::Fun);
+        words.insert("loop".to_string(), TokenType::Loop);
         words.insert("if".to_string(), TokenType::If);
         words.insert("nil".to_string(), TokenType::Nil);
         words.insert("or".to_string(), TokenType::Or);

@@ -138,6 +138,7 @@ impl Interpreter {
             Expression::BlockExpr(stmts) => self.interp_blockexpr(stmts),
             Expression::IfExpr(conditon, then, elses) => self.inetrp_ifexpr(conditon, then, elses),
             Expression::WhileExpr(conditon, body) => self.interp_whileexpr(conditon, body),
+            Expression::LoopExpr(body) => self.interp_loopexpr(body),
             // Expression::BreakExpr() => Ok(Value::Break),
             // Expression::Assignment(sym, expr) => Ok(self.interpret_assignment(sym, expr)),
             // _ => panic!("Error on interpreting expression. Unkown expression"),
@@ -446,6 +447,18 @@ impl Interpreter {
                 }
             } else {
                 return Ok(last);
+            }
+        }
+        return Ok(last);
+    }
+
+    fn interp_loopexpr(&mut self, body: Box<Expression>) -> Result<Value, String> {
+        let mut last = Value::Break;
+        while true{
+            last = self.interp_expression(*body.clone())?;
+            match last {
+                Value::Break => break,
+                _ => (),
             }
         }
         return Ok(last);

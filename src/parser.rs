@@ -108,7 +108,7 @@ impl Parser {
 
     //     return Ok(Statement::While(condition, stmts));
     // }
-
+    //while
     fn while_expr(&mut self) -> Expression {
         if self.matcher(TokenType::While) {
             self.inloop = true;
@@ -120,8 +120,21 @@ impl Parser {
             self.inloop = false;
             return Expression::WhileExpr(Box::new(condition), Box::new(body));
         } else {
-            return self.if_expr();
+            return self.loop_expr();
         }
+    }
+
+    //loop
+    fn loop_expr(&mut self) -> Expression {
+        if self.matcher(TokenType::Loop){
+        self.inloop = true;
+        let body = self.expression();
+            self.inloop = false;
+
+            return Expression::LoopExpr(Box::new(body));
+    }else {
+        return self.if_expr();
+    }
     }
 
     //If
