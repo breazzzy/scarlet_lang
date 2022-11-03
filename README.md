@@ -7,7 +7,7 @@ Tiny programming language written in Rust.
 This is a passion project im making for practice and fun, while I have time between classes/work.
 
 Example: 
-'''
+```
 fun fib(n){
     if n <= 1{
         return n;
@@ -18,10 +18,10 @@ fun fib(n){
 
 let n = 9;
 
-let an = fib(n);
+let fib_9 = fib(n);
 
-println(an);
-'''
+println(an); # 34
+```
 
 ## How to run
 
