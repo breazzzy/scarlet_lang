@@ -1,10 +1,12 @@
 # Scarlett Lang
 
-Tiny programming language written in Rust.
+This project is a tiny programming language written in Rust.
 
 ## Description
 
-This is a passion project im making for practice and fun, while I have time between classes/work.
+Scarlet is a passion project I'm making for practice and fun while I have time between classes/work.
+
+This project will not be the next big language, obviously. It's just something I've built out of joy and interest. The language is high-level, expressive and dynamically typed.
 
 Example: 
 ```
@@ -12,7 +14,7 @@ fun fib(n){
     if n <= 1{
         n
     }else{
-        return fib(n-1) + fib(n-2);
+        fib(n-1) + fib(n-2)
     }
 }
 
@@ -27,16 +29,21 @@ println(fib_9); # 34
 
 ### Build
 
-* How to run the program
-* Step-by-step bullets
 ```
-code blocks for commands
+git clone git@github.com:breazzzy/scarlet_lang.git
+cd scarlet_lang
+cargo run [file_name]
 ```
 
 ## Authors
 
-Contributors names and contact info
+Contributor's names and contact info
 
-ex. Billy Barrese  
-ex. [@breazzzy](https://twitter.com/breazzzy)
+Ex. Billy Barrese  
+ex. [@breazzzy]
+
+## Citations
+
+The book Crafting Interpreters by Robert Nystrom was a significant influence early on. As I've come to understand more concepts, I've slowly veered off it, but it's a really great book for anyone trying to get started with interpreters.
+
 
