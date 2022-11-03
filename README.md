@@ -25,13 +25,13 @@ println(fib_9); # 34
 
 ## How to run
 
-<!-- ### Executing program
+### Build
 
 * How to run the program
 * Step-by-step bullets
 ```
 code blocks for commands
-``` -->
+```
 
 ## Authors
 

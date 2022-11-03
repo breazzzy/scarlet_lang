@@ -1,4 +1,4 @@
-use std::{env, fs};
+use std::{env, fs, path::PathBuf};
 
 mod expression;
 mod function;
@@ -11,24 +11,39 @@ mod token;
 
 use interpreter::Interpreter;
 use lexer::Lexer;
-use parser::Parser;
+use parser::Parser as scrlt;
+use clap::Parser;
 use token::Token;
 
-fn main() {
-    let mut x = 2;
-    let y = if true {
-        x;
-        x+2
-    }else{
-        let x = 4;
-        x+3
-    };
-    let args: Vec<String> = env::args().collect();
-    let path = &args[1];
-    read_file(path);
+
+#[derive(Parser)]
+#[command(author, version, about, long_about = None)]
+struct Args{
+    path : Option<PathBuf>
 }
 
-fn read_file(path: &str) {
+fn main() {
+    let args = Args::parse();
+    if let Some(p) = args.path{
+        read_file(p);
+    }else{
+        println!("Enter");
+        let mut interpreter: Interpreter = Interpreter::new();
+        //Start REPL
+        loop{
+            // print!(":");
+            let mut lines = String::new();
+            let _ = std::io::stdin().read_line(&mut lines).unwrap();
+            let mut lexer = Lexer::new(&lines);
+            lexer.scan_tokens();
+            let mut parser = scrlt::new(lexer.tokens);
+            interpreter.interp(parser.parse().expect("Parsing failure"))
+        }
+        
+    }
+}
+
+fn read_file(path: PathBuf) {
     let c = fs::read_to_string(path).expect("Couldn't read file");
     run(c);
 }
@@ -38,7 +53,7 @@ fn run(src: String) {
     let mut interpreter: Interpreter = Interpreter::new();
     scanner.scan_tokens();
     // scanner.tokens.into_iter().map(|x| print!("{}", x));
-    let mut parser: Parser = Parser::new(scanner.tokens);
+    let mut parser: scrlt = scrlt::new(scanner.tokens);
     interpreter.interp(parser.parse().expect("Parsing failure"));
     // println!("{:?}", val);
     // let mut tokens: Vec<Token> = scanner.scanTokens();
