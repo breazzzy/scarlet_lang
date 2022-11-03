@@ -35,6 +35,7 @@ impl Lexer {
         words.insert("let".to_string(), TokenType::Let);
         words.insert("while".to_string(), TokenType::While);
         words.insert("break".to_string(), TokenType::Break);
+        words.insert("continue".to_string(), TokenType::Continue);
         Lexer {
             source: src.to_string(),
             tokens: vec![],

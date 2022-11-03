@@ -25,6 +25,7 @@ pub enum Expression {
     LoopExpr(Box<Expression>),
     WhileExpr(Box<Expression>, Box<Expression>),
     BreakExpr,
+    ContinueExpr,
 }
 
 impl Debug for Expression {
@@ -43,6 +44,7 @@ impl Debug for Expression {
             Self::LoopExpr(arg0) => f.debug_tuple("LoopExpr").field(arg0).finish(),
             Self::WhileExpr(arg0, arg1) => f.debug_tuple("WhileExpr").field(arg0).field(arg1).finish(),
             Self::BreakExpr => write!(f, "BreakExpr"),
+            Self::ContinueExpr => write!(f, "ContinueExpr"),
         }
     }
 }

@@ -384,6 +384,16 @@ impl Parser {
                 )
             }
         }
+        if self.matcher(TokenType::Continue) {
+            if self.inloop {
+                return Expression::ContinueExpr;
+            } else {
+                panic!(
+                    "@Line {}: Continue only allowed in loops",
+                    self.tokens[self.current].line
+                )
+            }
+        }
         
         // if self.matcher(TokenType::Return) {
         //     if self.infunction {

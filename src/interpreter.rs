@@ -127,6 +127,7 @@ impl Interpreter {
             Expression::BreakExpr => {
                 return Ok(Value::Break);
             }
+            Expression::ContinueExpr => {println!("cont");return Ok(Value::Continue)},
             Expression::Binary(l, operation, r) => self.interp_binary(l, operation, r),
             Expression::Unary(operation, ex) => self.interp_unary(operation, ex),
             Expression::Literal(a) => self.interp_literal(a),
@@ -387,6 +388,7 @@ impl Interpreter {
                     last = self.interp_expression(ex)?;
                     match last {
                         Value::Break => return Ok(Value::Break),
+                        Value::Continue => return Ok(Value::Continue),
                         _ => (),
                     }
                 }
@@ -443,6 +445,7 @@ impl Interpreter {
                 // println!("Result of interp: {:?}", last);
                 match last {
                     Value::Break => break,
+                    Value::Continue => continue,
                     _ => (),
                 }
             } else {
@@ -458,6 +461,7 @@ impl Interpreter {
             last = self.interp_expression(*body.clone())?;
             match last {
                 Value::Break => break,
+                Value::Continue => {println!("continue");continue},
                 _ => (),
             }
         }
@@ -497,6 +501,7 @@ pub enum Value {
     Function(Function),
     Nil,
     Break,
+    Continue,
 }
 
 impl Debug for Value {
@@ -509,6 +514,7 @@ impl Debug for Value {
             Self::Function(arg0) => f.debug_tuple("Function").field(arg0).finish(),
             Self::Nil => write!(f, "Nil"),
             Self::Break => write!(f, "Break"),
+            Self::Continue => write!(f, "Continue"),
         }
     }
 }
@@ -522,6 +528,7 @@ impl Display for Value {
             Value::Nil => f.write_str("Nil"),
             Value::NativeFunction(n) => f.write_fmt(format_args!("{}", n.name)),
             Value::Break => todo!(),
+            Value::Continue => todo!(),
             Value::Function(fu) => f.write_fmt(format_args!("{}", fu.name.name)),
         }
     }

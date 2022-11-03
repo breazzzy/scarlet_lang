@@ -1,8 +1,11 @@
 let x=  4;
-loop{
-    println("Hello");
+while x < 15{
     x = x +1;
-    if x == 15{
+    if x == 6{
+        continue;
+    }
+    println(x);
+    if x == 11{
         break;
     }
 }

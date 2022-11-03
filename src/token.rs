@@ -50,6 +50,7 @@ pub enum TokenType {
     TERMINATE,
     Break,
     Loop,
+    Continue,
 }
 
 #[derive(Debug, Clone)]
