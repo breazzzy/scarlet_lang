@@ -10,7 +10,7 @@ Example:
 ```
 fun fib(n){
     if n <= 1{
-        return n;
+        n
     }else{
         return fib(n-1) + fib(n-2);
     }
@@ -20,7 +20,7 @@ let n = 9;
 
 let fib_9 = fib(n);
 
-println(an); # 34
+println(fib_9); # 34
 ```
 
 ## How to run

@@ -1,13 +1,13 @@
-fun fib_(n){
+fun fib(n){
     if n <= 1{
-        return n;
+        n
     }else{
-        return fib_(n-1) + fib_(n-2);
+        return fib(n-1) + fib(n-2);
     }
 }
 
 let n = 9;
 
-let an = fib_(n);
+let fib_9 = fib(n);
 
-println(an);
+println(fib_9); # 34
