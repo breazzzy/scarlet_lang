@@ -49,6 +49,8 @@ impl Callable for Function {
         let old_scope = interpreter.program_scope.clone();
         //Create new scope by cloning this functions saved closure
         let mut func_scope = self.closure.clone();
+        func_scope.enclosing = Some(Box::new(old_scope.clone()));
+        // func_scope.values.extend(old_scope.values.clone());
 
         //Map args to params
         self.params
@@ -56,7 +58,7 @@ impl Callable for Function {
             .into_iter()
             .enumerate()
             .for_each(|(i, ele)| {
-                func_scope.define_var(ele, args[i].clone());
+                func_scope.assign_var(&ele, args[i].clone());
             });
 
         //Move interpreter to new scope

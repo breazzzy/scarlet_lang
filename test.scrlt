@@ -1,17 +1,7 @@
-fun make_counter(){
-    let i = 0;
-    fun count(){
-        i = i + 1;
-        println(i);
-    }
-    return count;
+let x = "hi";
+
+fun printx(x){
+    println(x);
 }
 
-let counter = make_counter();
-counter();
-counter();
-counter();
-counter();
-counter();
-counter();
-counter();
+printx("H");
