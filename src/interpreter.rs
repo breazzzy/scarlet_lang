@@ -6,7 +6,7 @@ use std::{
 
 use crate::{
     expression::{Expression, Symbol},
-    function::{Callable, NativeFunction, Function},
+    function::{Callable, Function, NativeFunction},
     scope::Scope,
     statement::Statement,
     token::{Literal, Token, TokenType},
@@ -14,14 +14,20 @@ use crate::{
 
 #[derive(Clone)]
 pub struct Interpreter {
-    pub program_scope: Scope,
-    pub return_val : Option<Value>, //Current return value
+    pub program_scope: Scope,      //Scope currently being used by interpreter
+    pub return_val: Option<Value>, //Current return value
+    /*Hash Map of all user defined functions
+    This is used to get closures to work. Each function has an id, when the function is called it
+    changes the value its id correlates to in this map.  */
+    pub function_map: HashMap<u64, Function>,
+    pub f_count: u64, //Counter for next function id.
+    pub global: Scope,
 }
 
 impl Interpreter {
     pub fn new() -> Interpreter {
-        let mut global: HashMap<String, Value> = HashMap::new();
-        global.insert(
+        let mut global_map: HashMap<String, Value> = HashMap::new();
+        global_map.insert(
             "pow".to_string(),
             Value::NativeFunction(NativeFunction {
                 name: "pow".to_string(),
@@ -33,7 +39,7 @@ impl Interpreter {
             }),
         );
 
-        global.insert(
+        global_map.insert(
             "min".to_string(),
             Value::NativeFunction(NativeFunction {
                 name: "min".to_string(),
@@ -44,7 +50,7 @@ impl Interpreter {
                 },
             }),
         );
-        global.insert(
+        global_map.insert(
             "max".to_string(),
             Value::NativeFunction(NativeFunction {
                 name: "max".to_string(),
@@ -55,7 +61,7 @@ impl Interpreter {
                 },
             }),
         );
-        global.insert(
+        global_map.insert(
             "abs".to_string(),
             Value::NativeFunction(NativeFunction {
                 name: "abs".to_string(),
@@ -66,7 +72,7 @@ impl Interpreter {
                 },
             }),
         );
-        global.insert(
+        global_map.insert(
             "print".to_string(),
             Value::NativeFunction(NativeFunction {
                 name: "print".to_string(),
@@ -77,7 +83,7 @@ impl Interpreter {
                 },
             }),
         );
-        global.insert(
+        global_map.insert(
             "println".to_string(),
             Value::NativeFunction(NativeFunction {
                 name: "println".to_string(),
@@ -88,11 +94,16 @@ impl Interpreter {
                 },
             }),
         );
-        let mut scope = Scope::new(None);
-        scope.load(global);
+        let scope = Scope::new(None);
+        let mut global = Scope::new(None);
+        global.load(global_map);
+        // scope.load(global);
         Interpreter {
             program_scope: scope,
             return_val: None,
+            function_map: HashMap::new(),
+            f_count: 0,
+            global: global,
         }
     }
 
@@ -110,12 +121,17 @@ impl Interpreter {
         match stmt {
             Statement::Declaration(sym, expr) => self.interp_declaration(sym, expr),
             Statement::Expression(expr) => {
-                let _ = self.interp_expression(expr);
+                let _ = self.interp_expression(expr)?;
                 Ok(())
             }
             Statement::Assignment(sym, expr) => self.interp_assignment(sym, expr),
-            Statement::FuncDclaration(name, params, body) => self.interp_funcdecl(name,params,body),
-            Statement::Return(expr) => {self.return_val = Some(self.interp_expression(expr)?); Ok(())},
+            Statement::FuncDclaration(name, params, body) => {
+                self.interp_funcdecl(name, params, body)
+            }
+            Statement::Return(expr) => {
+                self.return_val = Some(self.interp_expression(expr)?);
+                Ok(())
+            }
             // Statement::Block(stmts) => self.interp_block(stmts),
             // Statement::While(condition, body) => self.interp_while(condition, body),
         }
@@ -127,7 +143,10 @@ impl Interpreter {
             Expression::BreakExpr => {
                 return Ok(Value::Break);
             }
-            Expression::ContinueExpr => {println!("cont");return Ok(Value::Continue)},
+            Expression::ContinueExpr => {
+                println!("cont");
+                return Ok(Value::Continue);
+            }
             Expression::Binary(l, operation, r) => self.interp_binary(l, operation, r),
             Expression::Unary(operation, ex) => self.interp_unary(operation, ex),
             Expression::Literal(a) => self.interp_literal(a),
@@ -228,9 +247,12 @@ impl Interpreter {
     }
 
     fn interp_variable(&self, v: Symbol) -> Result<Value, String> {
-        match self.program_scope.get_var(v) {
+        match self.program_scope.get_var(v.clone()) {
             Ok(v) => Ok(v.clone()),
-            Err(err) => Err(err),
+            Err(err) => match self.global.get_var(v.clone()) {
+                Ok(v) => Ok(v.clone()),
+                Err(_) => Err(err),
+            },
         }
     }
     // Remove the return result to go back to normal assignment
@@ -246,9 +268,9 @@ impl Interpreter {
         Ok(())
     }
 
-    fn interpreter_error(&self, tok: Token, msg: &str) -> Result<Value, String> {
-        Err(format!("Intepreter Error @ {}: {}", tok.line, msg))
-    }
+    // fn interpreter_error(&self, tok: Token, msg: &str) -> Result<Value, String> {
+    //     Err(format!("Intepreter Error @ {}: {}", tok.line, msg))
+    // }
 
     fn interp_ternary(
         &mut self,
@@ -318,15 +340,25 @@ impl Interpreter {
         }
     }
 
-    
-    fn interp_funcdecl(&mut self, name: Symbol, params: Vec<Symbol>, body: Expression) -> Result<(), String> {
+    fn interp_funcdecl(
+        &mut self,
+        name: Symbol,
+        params: Vec<Symbol>,
+        body: Expression,
+    ) -> Result<(), String> {
         let mut stmts = vec![];
-        match body{
+        match body {
             Expression::BlockExpr(a) => stmts = a,
             _ => panic!("Funciton body must be a block. surrounded by {{ }}"),
         }
-        let func = Function{name: name.clone(), params, body: stmts};
-        let func_value = Value::Function(func);
+        let func = Function::new(name.clone(), params,
+            stmts,
+            self.program_scope.clone(),
+            self.f_count,
+        );
+        let func_value = Value::Function(self.f_count);
+        self.function_map.insert(self.f_count, func);
+        self.f_count = self.f_count + 1;
         self.program_scope.define_var(name, func_value);
         Ok(())
     }
@@ -358,9 +390,9 @@ impl Interpreter {
         args: Vec<Value>,
     ) -> Result<Value, String> {
         let callee = self.interp_expression(*callee_expr)?;
-        let mut fval;
+        let fval;
         match match_callable(self, callee) {
-            Some(f) => {
+            Some(mut f) => {
                 if args.len() != f.arity() {
                     panic!("Argument length exceeds paramter length");
                 } else {
@@ -371,7 +403,7 @@ impl Interpreter {
         }
         let return_val = self.return_val.clone();
         self.return_val = None;
-        match return_val{
+        match return_val {
             Some(val) => Ok(val.clone()),
             None => Ok(fval),
         }
@@ -457,37 +489,28 @@ impl Interpreter {
 
     fn interp_loopexpr(&mut self, body: Box<Expression>) -> Result<Value, String> {
         let mut last = Value::Break;
-        while true{
+        while true {
             last = self.interp_expression(*body.clone())?;
             match last {
                 Value::Break => break,
-                Value::Continue => {println!("continue");continue},
+                Value::Continue => {
+                    println!("continue");
+                    continue;
+                }
                 _ => (),
             }
         }
         return Ok(last);
     }
-
-    // fn interp_while(&mut self, condition: Expression, body: Vec<Statement>) -> Result<(), String> {
-    //     // let conditional = self.interp_expression(condition)?;
-    //     while let Value::Bool(v) = self.interp_expression(condition.clone())? {
-    //         if let true = v {
-    //             body.clone().into_iter().enumerate().for_each(|ele| {
-    //                 self.interp_statement(ele.1)
-    //                     .expect("Error on while loop body");
-    //             })
-    //         } else {
-    //             return Ok(());
-    //         }
-    //     }
-    //     return Ok(());
-    // }
 }
 
 fn match_callable(Interpreter: &mut Interpreter, val: Value) -> Option<Box<dyn Callable>> {
     match val {
         Value::NativeFunction(f) => Some(Box::new(f)),
-        Value::Function(f) => Some(Box::new(f)),
+        Value::Function(f) => {
+            let function = Interpreter.function_map.get(&f)?.clone();
+            Some(Box::new(function))
+        }
         _ => todo!(),
     }
 }
@@ -498,7 +521,7 @@ pub enum Value {
     String(String),
     Bool(bool),
     NativeFunction(NativeFunction),
-    Function(Function),
+    Function(u64),
     Nil,
     Break,
     Continue,
@@ -529,7 +552,7 @@ impl Display for Value {
             Value::NativeFunction(n) => f.write_fmt(format_args!("{}", n.name)),
             Value::Break => todo!(),
             Value::Continue => todo!(),
-            Value::Function(fu) => f.write_fmt(format_args!("{}", fu.name.name)),
+            Value::Function(fu) => f.write_fmt(format_args!("{}", fu)),
         }
     }
 }

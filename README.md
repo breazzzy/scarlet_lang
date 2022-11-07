@@ -32,7 +32,16 @@ println(fib_9); # 34
 ```
 git clone git@github.com:breazzzy/scarlet_lang.git
 cd scarlet_lang
-cargo run [file_name]
+cargo build --release
+```
+### Run.
+#### From Binary
+```
+scarlet.exe [filename].scrlt
+```
+#### Allternativley Cargo can be used to run. This is probably the easier way!
+```
+cargo run [file_name].scrlt
 ```
 
 ## Authors

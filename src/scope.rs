@@ -45,7 +45,7 @@ impl Scope {
 
     pub fn get_var(&self, sym: Symbol) -> Result<&Value, String> {
         match self.values.get(&sym.name) {
-            Some(v) =>Ok(v),
+            Some(v) => Ok(v),
             None => match &self.enclosing {
                 Some(e) => e.get_var(sym),
                 None => Err(format!("Symbol {} not recognized", sym.name)),

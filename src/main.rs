@@ -1,4 +1,4 @@
-use std::{env, fs, path::PathBuf};
+use std::{fs, path::PathBuf};
 
 mod expression;
 mod function;
@@ -9,28 +9,27 @@ mod scope;
 mod statement;
 mod token;
 
+use clap::Parser;
 use interpreter::Interpreter;
 use lexer::Lexer;
 use parser::Parser as scrlt;
-use clap::Parser;
 use token::Token;
-
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
-struct Args{
-    path : Option<PathBuf>
+struct Args {
+    path: Option<PathBuf>,
 }
 
 fn main() {
     let args = Args::parse();
-    if let Some(p) = args.path{
+    if let Some(p) = args.path {
         read_file(p);
-    }else{
+    } else {
         println!("Enter");
         let mut interpreter: Interpreter = Interpreter::new();
         //Start REPL
-        loop{
+        loop {
             // print!(":");
             let mut lines = String::new();
             let _ = std::io::stdin().read_line(&mut lines).unwrap();
@@ -39,7 +38,6 @@ fn main() {
             let mut parser = scrlt::new(lexer.tokens);
             interpreter.interp(parser.parse().expect("Parsing failure"))
         }
-        
     }
 }
 

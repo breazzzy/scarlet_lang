@@ -136,7 +136,7 @@ impl Lexer {
             _ => {
                 if c.is_digit(10) {
                     self.number();
-                } else if c.is_alphabetic() || c== '_' {
+                } else if c.is_alphabetic() || c == '_' {
                     self.identifier();
                 } else {
                     panic!("Unexpected Charecter {} on line {}", c, self.line)

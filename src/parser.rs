@@ -3,7 +3,7 @@ use crate::{
     statement::Statement,
     token::{Literal, Token, TokenType},
 };
-use std::vec;
+use std::{vec, fmt::Display};
 
 pub struct Parser {
     tokens: Vec<Token>,
@@ -46,7 +46,10 @@ impl Parser {
         //     return Ok(Statement::Break);
         // }
 
-        if self.matcher(TokenType::Return){
+        if self.matcher(TokenType::Return) {
+            if(!self.infunction){
+                return Err("Error Return statement only alowed in functions".to_string());
+            }
             let expr = self.expression();
             self.consume(TokenType::Semicolon)?;
             return Ok(Statement::Return(expr));
@@ -75,7 +78,7 @@ impl Parser {
         if self.matcher(TokenType::Let) {
             return self.declare_var();
         }
-        if self.matcher(TokenType::Fun){
+        if self.matcher(TokenType::Fun) {
             return self.declare_fun();
         }
         return self.assignment();
@@ -126,15 +129,15 @@ impl Parser {
 
     //loop
     fn loop_expr(&mut self) -> Expression {
-        if self.matcher(TokenType::Loop){
-        self.inloop = true;
-        let body = self.expression();
+        if self.matcher(TokenType::Loop) {
+            self.inloop = true;
+            let body = self.expression();
             self.inloop = false;
 
             return Expression::LoopExpr(Box::new(body));
-    }else {
-        return self.if_expr();
-    }
+        } else {
+            return self.if_expr();
+        }
     }
 
     //If
@@ -394,7 +397,6 @@ impl Parser {
                 )
             }
         }
-        
         // if self.matcher(TokenType::Return) {
         //     if self.infunction {
         //         return Expression::ReturnExpr(Box::new(self.expression()));
@@ -451,8 +453,8 @@ impl Parser {
             _ => (),
             // _ => _ = self.consume(TokenType::Semicolon)?,
         }
-        if self.check(TokenType::Semicolon){
-            self.consume(TokenType::Semicolon);
+        if self.check(TokenType::Semicolon) {
+            self.consume(TokenType::Semicolon)?;
         }
         // self.consume(TokenType::Semicolon)
         //     .expect("; Expected after expression");
@@ -501,18 +503,45 @@ impl Parser {
     fn declare_fun(&mut self) -> Result<Statement, String> {
         let name = self.consume(TokenType::Identifier)?;
         _ = self.consume(TokenType::LeftParen)?;
-        let mut params : Vec<Symbol> = vec![];
-        if !self.check(TokenType::RightParen){
-        loop {
-            params.push(Symbol{name : self.consume(TokenType::Identifier)?.lex});
-            if !self.matcher(TokenType::Comma){
-                break;
+        let mut params: Vec<Symbol> = vec![];
+        self.infunction = true;
+        if !self.check(TokenType::RightParen) {
+            loop {
+                params.push(Symbol {
+                    name: self.consume(TokenType::Identifier)?.lex,
+                });
+                if !self.matcher(TokenType::Comma) {
+                    break;
+                }
             }
-        }}
+        }
         self.consume(TokenType::RightParen)?;
 
         let body = self.block();
+        self.infunction = false;
 
-        return Ok(Statement::FuncDclaration(Symbol { name: name.lex }, params, body))
+        return Ok(Statement::FuncDclaration(
+            Symbol { name: name.lex },
+            params,
+            body,
+        ));
     }
 }
+
+
+
+// struct ParsingError<'a>{
+//     parser : &'a Parser,
+//     error_msg: String,
+// }
+// impl ParsingError<'_> {
+//     fn new(parser: &Parser, error_msg: String) -> ParsingError{
+//         ParsingError {parser,error_msg}
+//     }
+// }
+
+// impl Display for ParsingError<'_>{
+//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+//         writeln!(f, "[Parsing Error] @ Line {}: {}", self.parser.tokens[self.parser.current].line, self.error_msg)
+//     }
+// }
