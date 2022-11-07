@@ -511,7 +511,7 @@ fn match_callable(Interpreter: &mut Interpreter, val: Value) -> Option<Box<dyn C
             let function = Interpreter.function_map.get(&f)?.clone();
             Some(Box::new(function))
         }
-        _ => todo!(),
+        _ => panic!("Error matching callable"),
     }
 }
 

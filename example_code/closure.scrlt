@@ -4,6 +4,7 @@ fun make_counter(){
         i = i + 1;
         println(i);
     }
+    return count;
 }
 
 let counter = make_counter();

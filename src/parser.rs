@@ -9,7 +9,7 @@ pub struct Parser {
     tokens: Vec<Token>,
     current: usize,
     inloop: bool, // Used for break expression
-    infunction: bool,
+    function_stack: Vec<u8>, //Used to tell if parser is currently inside function declaration
 }
 
 /*
@@ -27,7 +27,7 @@ impl Parser {
             tokens,
             current: 0,
             inloop: false,
-            infunction: false,
+            function_stack: vec![],
         }
     }
 
@@ -47,7 +47,7 @@ impl Parser {
         // }
 
         if self.matcher(TokenType::Return) {
-            if(!self.infunction){
+            if(self.function_stack.is_empty()){
                 return Err("Error Return statement only alowed in functions".to_string());
             }
             let expr = self.expression();
@@ -79,7 +79,8 @@ impl Parser {
             return self.declare_var();
         }
         if self.matcher(TokenType::Fun) {
-            return self.declare_fun();
+            let f = self.declare_fun();
+            return f;
         }
         return self.assignment();
         // return self.statement();
@@ -504,7 +505,7 @@ impl Parser {
         let name = self.consume(TokenType::Identifier)?;
         _ = self.consume(TokenType::LeftParen)?;
         let mut params: Vec<Symbol> = vec![];
-        self.infunction = true;
+        self.function_stack.push(0);
         if !self.check(TokenType::RightParen) {
             loop {
                 params.push(Symbol {
@@ -518,8 +519,7 @@ impl Parser {
         self.consume(TokenType::RightParen)?;
 
         let body = self.block();
-        self.infunction = false;
-
+        self.function_stack.pop();
         return Ok(Statement::FuncDclaration(
             Symbol { name: name.lex },
             params,
