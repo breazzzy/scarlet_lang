@@ -22,10 +22,11 @@ pub struct Interpreter {
     pub function_map: HashMap<u64, Function>,
     pub f_count: u64, //Counter for next function id.
     pub global: Scope,
+    pub lex_scope : HashMap<u64, usize>,
 }
 
 impl Interpreter {
-    pub fn new() -> Interpreter {
+    pub fn new(lex_scope : HashMap<u64, usize>) -> Interpreter {
         let mut global_map: HashMap<String, Value> = HashMap::new();
         global_map.insert(
             "pow".to_string(),
@@ -104,6 +105,7 @@ impl Interpreter {
             function_map: HashMap::new(),
             f_count: 0,
             global: global,
+            lex_scope : lex_scope,
         }
     }
 
@@ -138,13 +140,11 @@ impl Interpreter {
     }
 
     pub fn interp_expression(&mut self, expr: Expression) -> Result<Value, String> {
-        // println!("{:?}", expr);
         match expr {
             Expression::BreakExpr => {
                 return Ok(Value::Break);
             }
             Expression::ContinueExpr => {
-                println!("cont");
                 return Ok(Value::Continue);
             }
             Expression::Binary(l, operation, r) => self.interp_binary(l, operation, r),
@@ -213,6 +213,9 @@ impl Interpreter {
             (Value::String(l), TokenType::Plus, Value::Number(r)) => {
                 Ok(Value::String(l + &r.to_string()))
             }
+            (Value::Number(l), TokenType::Plus, Value::String(r)) => {
+                Ok(Value::String(l.to_string() + &r))
+            }
             //Logic
             (Value::Bool(l), TokenType::Equality, Value::Bool(r)) => Ok(Value::Bool(l == r)),
             (Value::Bool(l), TokenType::NotEqual, Value::Bool(r)) => Ok(Value::Bool(l != r)),
@@ -240,28 +243,30 @@ impl Interpreter {
                 Ok(v) => self.program_scope.define_var(variable, v),
                 Err(e) => return Err(e),
             },
-            // println!("{} as {}", variable.name, self.interpret_expression(expr).expect("Error interpreting expression after declaration")),
             None => self.program_scope.define_var(variable, Value::Nil),
         }
         Ok(())
     }
 
     fn interp_variable(&self, v: Symbol) -> Result<Value, String> {
-        match self.program_scope.get_var(v.clone()) {
-            Ok(v) => Ok(v.clone()),
-            Err(err) => match self.global.get_var(v.clone()) {
-                Ok(v) => Ok(v.clone()),
-                Err(_) => Err(err),
-            },
-        }
+     // match self.program_scope.get_var(v.clone()) {
+        //     Ok(v) => Ok(v.clone()),
+        //     Err(err) => match self.global.get_var(v.clone()) {
+        //         Ok(v) => Ok(v.clone()),
+        //         Err(_) => Err(err),
+        //     },
+        // }
+        self.look_up(v)
     }
     // Remove the return result to go back to normal assignment
     // Assignment is currently an expression meaning something like print x = 2; will print 2 and all assign variable x to 2;
     // When assignment is a statment it would throw an error for print x = 2; and assignment would always look like y = 3;
     fn interp_assignment(&mut self, sym: Symbol, expr: Expression) -> Result<(), String> {
+        let distance = self.lex_scope.get(&sym.s_id).expect(&format!("{} not found in lex scope.", sym.name)).clone();
         match self.interp_expression(expr) {
             Ok(v) => {
-                self.program_scope.assign_var(&sym, v);
+                // self.program_scope.assign_var(&sym, v);
+                self.program_scope.assign_at(sym, v, distance);
             }
             Err(e) => return Err(e),
         }
@@ -346,7 +351,7 @@ impl Interpreter {
         params: Vec<Symbol>,
         body: Expression,
     ) -> Result<(), String> {
-        let mut stmts = vec![];
+        let stmts ;
         match body {
             Expression::BlockExpr(a) => stmts = a,
             _ => panic!("Funciton body must be a block. surrounded by {{ }}"),
@@ -412,15 +417,34 @@ impl Interpreter {
     }
 
     fn interp_blockexpr(&mut self, stmts: Vec<Statement>) -> Result<Value, String> {
-        self.program_scope = Scope::new(Some(Box::new(self.program_scope.clone())));
+        let old_scope = self.program_scope.clone();
+        self.program_scope = Scope::new(Some(Box::new(old_scope)));
         let mut last: Value = Value::Nil;
         for stmt in stmts {
             match stmt {
                 Statement::Expression(ex) => {
                     last = self.interp_expression(ex)?;
                     match last {
-                        Value::Break => return Ok(Value::Break),
-                        Value::Continue => return Ok(Value::Continue),
+                        Value::Break => {
+                            if let Some(scope) = &self.program_scope.enclosing {
+                                self.program_scope = *scope.clone();
+                            } else {
+                                //Something has gone horribly wrong
+                                panic!("Scope no longer exists")
+                                //This should be impossible
+                            }
+                            return Ok(Value::Break)
+                        },
+                        Value::Continue => {
+                            if let Some(scope) = &self.program_scope.enclosing {
+                                self.program_scope = *scope.clone();
+                            } else {
+                                //Something has gone horribly wrong
+                                panic!("Scope no longer exists")
+                                //This should be impossible
+                            }
+                            return Ok(Value::Continue)
+                        },
                         _ => (),
                     }
                 }
@@ -457,7 +481,7 @@ impl Interpreter {
                     return Ok(r);
                 }
                 false => match *elses {
-                    Some(expr) => self.interp_expression(expr),
+                    Some(expr) => {self.interp_expression(expr)},
                     None => return Ok(Value::Nil),
                 },
             },
@@ -474,7 +498,6 @@ impl Interpreter {
         while let Value::Bool(v) = self.interp_expression(*conditon.clone())? {
             if let true = v {
                 last = self.interp_expression(*body.clone())?;
-                // println!("Result of interp: {:?}", last);
                 match last {
                     Value::Break => break,
                     Value::Continue => continue,
@@ -489,12 +512,11 @@ impl Interpreter {
 
     fn interp_loopexpr(&mut self, body: Box<Expression>) -> Result<Value, String> {
         let mut last = Value::Break;
-        while true {
+        loop {
             last = self.interp_expression(*body.clone())?;
             match last {
                 Value::Break => break,
                 Value::Continue => {
-                    println!("continue");
                     continue;
                 }
                 _ => (),
@@ -502,13 +524,22 @@ impl Interpreter {
         }
         return Ok(last);
     }
+
+    pub fn look_up(&self, sym : Symbol) -> Result<Value,String>{
+        let distance = self.lex_scope.get(&sym.s_id);
+        if let Some(d) = distance {
+            return Ok(self.program_scope.get_at(sym,*d));
+        }else{
+            return Ok(self.global.get_at(sym,0));
+        }
+    }
 }
 
-fn match_callable(Interpreter: &mut Interpreter, val: Value) -> Option<Box<dyn Callable>> {
+fn match_callable(interpreter: &mut Interpreter, val: Value) -> Option<Box<dyn Callable>> {
     match val {
         Value::NativeFunction(f) => Some(Box::new(f)),
         Value::Function(f) => {
-            let function = Interpreter.function_map.get(&f)?.clone();
+            let function = interpreter.function_map.get(&f)?.clone();
             Some(Box::new(function))
         }
         _ => panic!("Error matching callable"),

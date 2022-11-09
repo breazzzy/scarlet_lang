@@ -34,41 +34,44 @@ impl Scope {
         if self.values.contains_key(&key.name) {
             return true;
         } else {
-            // if let Some(enclosing_scope) = &self.enclosing {
-            //     return enclosing_scope.contains_key(key);
-            // } else {
-            //     return false;
-            // }
             false
         }
     }
 
-    pub fn get_var(&self, sym: Symbol) -> Result<&Value, String> {
-        match self.values.get(&sym.name) {
-            Some(v) => Ok(v),
-            None => match &self.enclosing {
-                Some(e) => e.get_var(sym),
-                None => Err(format!("Symbol {} not recognized", sym.name)),
-            },
+    pub(crate) fn get_at(&self, sym: Symbol, d: usize) -> Value {
+        if let Some(val) = self.ancestor(d).values.get(&sym.name){
+
+            return val.clone();
+        }else{
+            panic!("Error getting value {} in lex scope. Expcted @ depth {}", sym.name, d);
         }
     }
 
-    pub fn assign_var(&mut self, sym: &Symbol, v: Value) /*-> Result<Value, String>*/
-    {
-        if self.values.contains_key(&sym.name) {
-            self.values.insert(sym.name.clone(), v);
-            // Ok(v)
-        } else {
-            if let Some(enclosing_scope) = &mut self.enclosing {
-                enclosing_scope.assign_var(&sym, v);
-                return;
+    pub fn assign_at(&mut self, sym: Symbol, val : Value, d: usize){
+        self.ancestor_mut(d).values.insert(sym.name.clone(), val);
+    }
+
+    pub fn ancestor(&self, dist : usize) -> Scope{
+        let mut ret = self.clone();
+        for _ in 0..dist{
+            if let Some(e) = ret.enclosing.clone(){
+            ret = (*e).clone();
+            }else{
+                panic!("Enclosing scope not found");
             }
-            // panic!("Cannot recognize symbol {}. Did you forget to define {}", sym.name,sym.name);
-            // Err(format!("Cannot recognize symbol {}. Did you forget to define {}", sym.name,sym.name))
-            panic!(
-                "Cannot recognize symbol {}. Did you forget to define {}",
-                sym.name, sym.name
-            );
         }
+        return ret.clone();
+    }
+
+    pub fn ancestor_mut(&mut self, dist: usize) -> &mut Scope{
+        let mut ret = self;
+        for _ in 0..dist{
+            if let Some(e) = &mut ret.enclosing{
+                ret = &mut (*e);
+            }else{
+                panic!();
+            }
+        }
+        return ret;
     }
 }

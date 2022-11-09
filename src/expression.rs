@@ -76,9 +76,10 @@ impl Debug for Expression {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone,Hash, PartialEq, Eq)]
 pub struct Symbol {
     pub name: String,
+    pub s_id: u64,
 }
 
 impl Debug for Symbol {

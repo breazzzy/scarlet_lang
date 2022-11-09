@@ -1,10 +1,10 @@
 use crate::{
     expression::Symbol,
-    interpreter::{self, Interpreter, Value},
+    interpreter::{Interpreter, Value},
     scope::Scope,
     statement::Statement,
 };
-use std::fmt::Debug;
+use std::{fmt::Debug, collections::HashMap};
 
 #[derive(Clone)]
 pub struct Function {
@@ -45,24 +45,28 @@ impl Callable for Function {
         // );
         let mut last = Ok(Value::Nil);
 
-        //Clone old scope so we can return to it later.
-        let old_scope = interpreter.program_scope.clone();
-        //Create new scope by cloning this functions saved closure
-        let mut func_scope = self.closure.clone();
-        func_scope.enclosing = Some(Box::new(old_scope.clone()));
-        // func_scope.values.extend(old_scope.values.clone());
+        let args_map : HashMap<_,_> = self.params.iter().zip(args.iter()).map(|(param,arg)|{
+            (
+                param.name.clone(),
+                    arg.clone(),
+            )
+        }).collect();
 
-        //Map args to params
-        self.params
-            .clone()
-            .into_iter()
-            .enumerate()
-            .for_each(|(i, ele)| {
-                func_scope.assign_var(&ele, args[i].clone());
-            });
+        //Clone old scope so we can return to it later.
+        let mut old_scope = interpreter.program_scope.clone();
+        //Create new scope by cloning this functions saved closure\\
+
+        let mut func_scope = self.closure.clone();
+
+        func_scope.values.extend(args_map);
+
+        old_scope.values.insert(self.name.name.clone(), Value::Function(self.f_id));
+        old_scope.values.extend(self.closure.values.clone());
+        func_scope.enclosing = Some(Box::new(old_scope.clone()));
 
         //Move interpreter to new scope
         interpreter.program_scope = func_scope.clone();
+
         // println!("{:?}", interpreter.program_scope.values);
         for (_, stmt) in self.body.clone().into_iter().enumerate() {
             if let Some(_) = interpreter.return_val.clone() {
@@ -73,13 +77,15 @@ impl Callable for Function {
                 _ => _ = interpreter.interp_statement(stmt),
             }
         }
+        // println!("After function call the scope looks like {:?}",interpreter.program_scope.enclosing.clone().expect("").values);
         //Update closure
-        self.closure = interpreter.program_scope.clone();
+        self.closure = *interpreter.program_scope.enclosing.clone().expect("");
         
         //Update reference to function in interpreter. This assures that the function is called with the updated closure next time its called.
         interpreter.function_map.insert(self.f_id, self.clone());
         // old_scope.assign_var(&self.name, Value::Function(self.clone()));
-        interpreter.program_scope = old_scope; // Set interpreter back to old scope
+        interpreter.program_scope = old_scope.clone(); // Set interpreter back to old scope
+        // println!("AT END OF FUNCTION PROGRAM SCOPE IS EQUAL TO {:?}", interpreter.program_scope.values);
         return last;
     }
 }

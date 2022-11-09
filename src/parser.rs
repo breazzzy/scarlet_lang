@@ -3,13 +3,14 @@ use crate::{
     statement::Statement,
     token::{Literal, Token, TokenType},
 };
-use std::{vec, fmt::Display};
+use std::{vec};
 
 pub struct Parser {
     tokens: Vec<Token>,
     current: usize,
     inloop: bool, // Used for break expression
     function_stack: Vec<u8>, //Used to tell if parser is currently inside function declaration
+    s_id : u64,
 }
 
 /*
@@ -28,6 +29,7 @@ impl Parser {
             current: 0,
             inloop: false,
             function_stack: vec![],
+            s_id : 0,
         }
     }
 
@@ -47,7 +49,7 @@ impl Parser {
         // }
 
         if self.matcher(TokenType::Return) {
-            if(self.function_stack.is_empty()){
+            if self.function_stack.is_empty(){
                 return Err("Error Return statement only alowed in functions".to_string());
             }
             let expr = self.expression();
@@ -376,6 +378,7 @@ impl Parser {
         if self.matcher(TokenType::Identifier) {
             return Expression::Primary(Symbol {
                 name: self.previous().lex,
+                s_id: self.alloc_sid(),
             });
         }
         if self.matcher(TokenType::Break) {
@@ -477,7 +480,7 @@ impl Parser {
         self.consume(TokenType::Semicolon)
             .expect("Expect ; after variable declaration");
 
-        return Ok(Statement::Declaration(Symbol { name: name.lex }, init));
+        return Ok(Statement::Declaration(Symbol { name: name.lex, s_id: self.alloc_sid()}, init));
     }
     //Statment used for variable assignment
     fn assign_var(&mut self) -> Result<Statement, String> {
@@ -498,7 +501,7 @@ impl Parser {
             }
         }
 
-        return Ok(Statement::Assignment(Symbol { name: name.lex }, expr));
+        return Ok(Statement::Assignment(Symbol { name: name.lex , s_id: self.alloc_sid()}, expr));
     }
 
     fn declare_fun(&mut self) -> Result<Statement, String> {
@@ -510,6 +513,7 @@ impl Parser {
             loop {
                 params.push(Symbol {
                     name: self.consume(TokenType::Identifier)?.lex,
+                    s_id: self.alloc_sid(),
                 });
                 if !self.matcher(TokenType::Comma) {
                     break;
@@ -521,10 +525,15 @@ impl Parser {
         let body = self.block();
         self.function_stack.pop();
         return Ok(Statement::FuncDclaration(
-            Symbol { name: name.lex },
+            Symbol { name: name.lex, s_id: self.alloc_sid() },
             params,
             body,
         ));
+    }
+
+    fn alloc_sid(&mut self) -> u64 {
+        self.s_id = self.s_id + 1;
+        self.s_id
     }
 }
 

@@ -1,4 +1,4 @@
-use std::{fs, path::PathBuf};
+use std::{fs, path::PathBuf, collections::HashMap};
 
 mod expression;
 mod function;
@@ -8,11 +8,13 @@ mod parser;
 mod scope;
 mod statement;
 mod token;
+mod resolver;
 
 use clap::Parser;
 use interpreter::Interpreter;
 use lexer::Lexer;
 use parser::Parser as scrlt;
+use resolver::Resolver;
 use token::Token;
 
 #[derive(Parser)]
@@ -27,7 +29,7 @@ fn main() {
         read_file(p);
     } else {
         println!("Enter");
-        let mut interpreter: Interpreter = Interpreter::new();
+        let mut interpreter: Interpreter = Interpreter::new(HashMap::new());
         //Start REPL
         loop {
             // print!(":");
@@ -48,11 +50,24 @@ fn read_file(path: PathBuf) {
 
 fn run(src: String) {
     let mut scanner = Lexer::new(&src);
-    let mut interpreter: Interpreter = Interpreter::new();
     scanner.scan_tokens();
     // scanner.tokens.into_iter().map(|x| print!("{}", x));
     let mut parser: scrlt = scrlt::new(scanner.tokens);
-    interpreter.interp(parser.parse().expect("Parsing failure"));
+
+    let stmts = parser.parse().expect("Parsing failure");
+    let mut resolver = Resolver::new();
+
+    resolver.resolve(stmts.clone());
+
+
+    let mut interpreter: Interpreter = Interpreter::new(resolver.lex_scope);
+
+
+    // let mut resolver = Resolver::new(&interpreter);
+    // resolver.resolve(stmts.clone());
+    // interpreter = resolver.interpreter;
+
+    interpreter.interp(stmts);
     // println!("{:?}", val);
     // let mut tokens: Vec<Token> = scanner.scanTokens();
 }

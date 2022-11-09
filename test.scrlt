@@ -1,7 +1,47 @@
-let x = "hi";
 
-fun printx(x){
-    println(x);
+let a = "global";
+
+{
+    fun showa(){
+        println(a);
+    }
+
+    showa();
+
+    let a = "block";
+    showa();
+    println(a);
 }
 
-printx("H");
+a = "outer";
+{
+    let a = "inner";
+    println(a);
+}
+println("Hello World");
+
+fun show(b){
+    println(b);
+}
+
+show("Hello");
+
+let i = 0;
+loop {
+    i = i + 1;
+    println(i);
+    println(a);
+    println("HERE");
+    println(i);
+    println("again");
+    if (i > 10){
+        break;
+    }else{
+        continue;
+    }
+}
+
+while(i < 40){
+    println(i + " While");
+    i = i+1;
+}
