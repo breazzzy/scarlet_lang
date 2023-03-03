@@ -84,6 +84,9 @@ impl Parser {
             let f = self.declare_fun();
             return f;
         }
+        if self.matcher(TokenType::Struct){
+            return self.declare_struct();
+        }
         return self.assignment();
         // return self.statement();
     }
@@ -529,6 +532,17 @@ impl Parser {
             params,
             body,
         ));
+    }
+
+    fn declare_struct(&mut self) -> Result<Statement, String>{
+        let name = self.consume(TokenType::Identifier)?;
+        _ = self.consume(TokenType::LeftSquigly)?;
+        let mut field : Vec<Symbol> = vec![];
+        while !self.check(TokenType::RightSquigly) && !self.end_of_file() {
+            // This is where fields will be added
+        }
+        self.consume(TokenType::RightSquigly);
+        return Ok(Statement::StructDeclaration(Symbol {name:name.lex, s_id: self.alloc_sid()}));
     }
 
     fn alloc_sid(&mut self) -> u64 {

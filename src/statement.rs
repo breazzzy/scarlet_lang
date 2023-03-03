@@ -12,6 +12,7 @@ pub enum Statement /*StatementType */ {
     Declaration(Symbol, Option<Expression>), // let x = 2
     Assignment(Symbol, Expression),          // x = 2
     FuncDclaration(Symbol, Vec<Symbol>, Expression),
+    StructDeclaration(Symbol),
     Return(Expression),
 }
 
@@ -32,6 +33,10 @@ impl Debug for Statement {
                 .field(arg0)
                 .field(arg1)
                 .field(arg2)
+                .finish(),
+            Self::StructDeclaration(arg0) => f
+                .debug_tuple("StructDeclaration")
+                .field(arg0)
                 .finish(),
             Self::Return(arg0) => f.debug_tuple("Return").field(arg0).finish(),
         }

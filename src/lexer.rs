@@ -16,33 +16,34 @@ pub struct Lexer {
 
 impl Lexer {
     pub fn new(src: &String) -> Lexer {
-        let mut words = HashMap::new();
-        words.insert("and".to_string(), TokenType::And);
-        words.insert("class".to_string(), TokenType::Class);
-        words.insert("else".to_string(), TokenType::Else);
-        words.insert("false".to_string(), TokenType::False);
-        words.insert("for".to_string(), TokenType::For);
-        words.insert("fun".to_string(), TokenType::Fun);
-        words.insert("loop".to_string(), TokenType::Loop);
-        words.insert("if".to_string(), TokenType::If);
-        words.insert("nil".to_string(), TokenType::Nil);
-        words.insert("or".to_string(), TokenType::Or);
+        let mut _keywords = HashMap::new();
+        _keywords.insert("and".to_string(), TokenType::And);
+        _keywords.insert("class".to_string(), TokenType::Class);
+        _keywords.insert("else".to_string(), TokenType::Else);
+        _keywords.insert("false".to_string(), TokenType::False);
+        _keywords.insert("for".to_string(), TokenType::For);
+        _keywords.insert("fun".to_string(), TokenType::Fun);
+        _keywords.insert("loop".to_string(), TokenType::Loop);
+        _keywords.insert("if".to_string(), TokenType::If);
+        _keywords.insert("nil".to_string(), TokenType::Nil);
+        _keywords.insert("or".to_string(), TokenType::Or);
         // words.insert("print".to_string(), TokenType::Print);
-        words.insert("return".to_string(), TokenType::Return);
-        words.insert("super".to_string(), TokenType::Super);
-        words.insert("this".to_string(), TokenType::This);
-        words.insert("true".to_string(), TokenType::True);
-        words.insert("let".to_string(), TokenType::Let);
-        words.insert("while".to_string(), TokenType::While);
-        words.insert("break".to_string(), TokenType::Break);
-        words.insert("continue".to_string(), TokenType::Continue);
+        _keywords.insert("return".to_string(), TokenType::Return);
+        _keywords.insert("super".to_string(), TokenType::Super);
+        _keywords.insert("this".to_string(), TokenType::This);
+        _keywords.insert("true".to_string(), TokenType::True);
+        _keywords.insert("let".to_string(), TokenType::Let);
+        _keywords.insert("while".to_string(), TokenType::While);
+        _keywords.insert("break".to_string(), TokenType::Break);
+        _keywords.insert("continue".to_string(), TokenType::Continue);
+        _keywords.insert("struct".to_string(), TokenType::Struct);
         Lexer {
             source: src.to_string(),
             tokens: vec![],
             start: 0,
             current: 0,
             line: 1,
-            keywords: words,
+            keywords: _keywords,
         }
     }
 
@@ -165,6 +166,15 @@ impl Lexer {
         self.current += 1;
         return self.source.chars().nth(self.current - 1).unwrap();
     }
+
+    // pub fn advance_by(&mut self, n : usize) -> Vec<char>{
+    //     let mut out = vec![];
+    //     for i in 0..n{
+    //         out.push(self.advance());
+    //     }
+    //     return out;
+    // }
+
     pub fn peek(&self) -> char {
         if self.is_at_end() {
             return '\0';

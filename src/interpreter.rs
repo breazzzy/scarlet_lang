@@ -120,6 +120,7 @@ impl Interpreter {
     }
 
     pub fn interp_statement(&mut self, stmt: Statement) -> Result<(), String> {
+        // println!("{}", stmt.);
         match stmt {
             Statement::Declaration(sym, expr) => self.interp_declaration(sym, expr),
             Statement::Expression(expr) => {
@@ -132,6 +133,10 @@ impl Interpreter {
             }
             Statement::Return(expr) => {
                 self.return_val = Some(self.interp_expression(expr)?);
+                Ok(())
+            }
+            Statement::StructDeclaration(sym) => {
+                let _ = self.interp_structdecl(sym)?;
                 Ok(())
             }
             // Statement::Block(stmts) => self.interp_block(stmts),
@@ -229,7 +234,7 @@ impl Interpreter {
             (Value::Number(l), TokenType::Less, Value::Number(r)) => Ok(Value::Bool(l < r)),
             (Value::Number(l), TokenType::Greater, Value::Number(r)) => Ok(Value::Bool(l > r)),
 
-            (_, _, _) => Err("Binary expression error.".to_string()),
+            (_, _, _) => Err((operation.lex + " Binary expression error. Unkown operation.").to_string()),
         }
     }
 
@@ -365,6 +370,14 @@ impl Interpreter {
         self.function_map.insert(self.f_count, func);
         self.f_count = self.f_count + 1;
         self.program_scope.define_var(name, func_value);
+        Ok(())
+    }
+
+    fn interp_structdecl(
+        &mut self,
+        name : Symbol,
+    ) -> Result<(),String>{
+        todo!("Need to do structs");
         Ok(())
     }
 

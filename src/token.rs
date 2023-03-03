@@ -46,6 +46,7 @@ pub enum TokenType {
     While,
     LeftSquigly,  // {}
     RightSquigly, // }
+    Struct,
     //
     TERMINATE,
     Break,

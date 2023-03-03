@@ -28,6 +28,11 @@ impl Resolver{
         self.define(sym.name.clone());
     }
 
+    pub fn struct_stmt(&mut self, sym : Symbol){
+        self.declare(sym.name.clone());
+        self.define(sym.name.clone());
+    }
+
     fn begin_scope(&mut self) {
         self.scope_stack.push(HashMap::new());
     }
@@ -57,6 +62,7 @@ impl Resolver{
             crate::statement::Statement::Assignment(sym, expr) => self.assign_stmt(sym, expr),
             crate::statement::Statement::FuncDclaration(name, params, expr) => self.function_declaration(name,params,expr),
             crate::statement::Statement::Return(expr) => self.return_stmt(expr),
+            crate::statement::Statement::StructDeclaration(name) => self.struct_stmt(name),
         }
     }
 

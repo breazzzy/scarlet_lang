@@ -1,6 +1,8 @@
 
 let a = "global";
 
+struct test{}
+
 {
     fun showa(){
         println(a);
